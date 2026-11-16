@@ -1366,7 +1366,7 @@ async function kk(){
       if(isSafM(r.card)&&!to.human)to.susp[p.i]-=2;
       return r.card}
     let pot=null;
-    /* tur 1: önce zincir (ilk oyuncu çeker, herkes sağına verir); sonra herkes sırayla alır, çeker, sandığa koyar, sağına verir (ilk oyuncu çekmişti) */
+    /* tur 1: önce zincir (ilk oyuncu çeker, herkes sağına verir); sonra herkes sırayla alır, çeker, sandığa koyar, sağına verir (ilk oyuncu da çeker, tur sonunda 5 kartla biter) */
     if(round===1){
       for(let ci=0;ci<chain.length;ci++){const p=chain[ci];actOnly(p.cat);
         if(pot){p.hand.push(pot);if(p.human){showHand(me.hand,{fresh:new Set([pot.uid])})}p.cat.mood('happy',500);upd()}
@@ -1375,7 +1375,7 @@ async function kk(){
       {const s=startP;s.hand.push(pot);if(s.human){showHand(me.hand,{fresh:new Set([pot.uid])})}s.cat.mood('happy',500);upd();pot=null}
       actOnly(null);await sleep(300);
       for(let ci=0;ci<chain.length;ci++){const p=chain[ci];actOnly(p.cat);
-        if(ci>0){if(pot){p.hand.push(pot);if(p.human){showHand(me.hand,{fresh:new Set([pot.uid])})}p.cat.mood('happy',500);upd()}await drawFor(p)}
+        if(pot){p.hand.push(pot);if(p.human){showHand(me.hand,{fresh:new Set([pot.uid])})}p.cat.mood('happy',500);upd()}await drawFor(p);
         await putChest(p);
         if(ci<chain.length-1){pot=await passOn(p)}
         else{const to=startP,r=await passOn(p);to.hand.push(r);if(to.human)showHand(me.hand,{fresh:new Set([r.uid])});upd()}
