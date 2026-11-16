@@ -1,4 +1,6 @@
+<meta charset="utf-8">
 <title>MIU</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap">
 <style>
@@ -747,6 +749,8 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 .espiles.out{position:absolute;z-index:6;min-height:0;background:rgba(58,26,42,.55);border-radius:12px;padding:4px 8px}
 
 .revealrow .rc.still{animation:none}
+
+@media (max-width:700px){body:has(#menu:not([hidden])){padding-block:8px 0}}
 
 </style>
 <div id="app">
@@ -2335,8 +2339,8 @@ function enterWagon(mode){const w=WAGONS.find(x=>x.k===mode);lastRoom=w.id;MUSIC
   $('#decor').innerHTML=(DECOR[w.id]||(()=>''))();
   $('#plq').innerHTML=`<b>${TITLES[mode]}</b>${w.name}`}
 let lastRoom=null;
-function showMenu(){if(NETL.phase==='game'){NETL.phase='party';NETL.cur=null;NETL.waiters.forEach(w=>clearInterval(w.timer));NETL.waiters=[]}partyRender();syncHud();document.body.classList.remove("ingame");FIT=1;{const t=$('#table'),s=$('#stage');s.style.transform='';t.style.height=''}MUSIC.play('menu');delete document.documentElement.dataset.w;cancelAll();$('#modal').hidden=true;$('#menu').hidden=false;setTimeout(fitMenu,30);$('#table').hidden=true;window.scrollTo(0,0)}
-async function launch(mode,opt,keep){
+function showMenu(){document.querySelectorAll('.espiles.out').forEach(e=>e.remove());if(NETL.phase==='game'){NETL.phase='party';NETL.cur=null;NETL.waiters.forEach(w=>clearInterval(w.timer));NETL.waiters=[]}partyRender();syncHud();document.body.classList.remove("ingame");FIT=1;{const t=$('#table'),s=$('#stage');s.style.transform='';t.style.height=''}MUSIC.play('menu');delete document.documentElement.dataset.w;cancelAll();$('#modal').hidden=true;$('#menu').hidden=false;setTimeout(fitMenu,30);$('#table').hidden=true;window.scrollTo(0,0)}
+async function launch(mode,opt,keep){document.querySelectorAll('.espiles.out').forEach(e=>e.remove());
   if(!keep&&(mode==='rd'||mode==='es'||mode==='vm'||mode==='ok'||mode==='bl'||mode==='kk')&&NETL.phase==='party'&&NETL.host&&netPlayers().length>=2){netStartHost(mode,mode==='es'?(opt||esN):mode==='vm'?(opt||vmN):mode==='bl'?(opt||blN):0);return}
   cancelAll();$('#modal').hidden=true;lastMode=mode;
   document.body.classList.add('ingame');$('#menu').hidden=true;$('#table').hidden=false;enterWagon(mode);$('#stage').classList.toggle('noidle',mode==='ok');
@@ -2349,10 +2353,19 @@ function syncHud(){{const ep=effPace(),lock=NETL.tr&&NETL.phase==='game'&&!NETL.
 /* ekrana sığdırma: sahne, görünür yüksekliğe göre tek parça ölçeklenir (kaydırma yok) */
 let fitQ=0,fitLock=1;
 function fitStage(){const t=$('#table'),s=$('#stage');if(!t||!s)return;
-  s.style.transform='';s.style.transformOrigin='';s.style.width='';t.style.height='';FIT=1;
+  s.style.transform='';s.style.transformOrigin='';s.style.width='';s.style.minHeight='';t.style.height='';FIT=1;
   if(t.hidden)return;
-  const nat=s.offsetHeight,top=t.getBoundingClientRect().top+window.scrollY,vh=window.visualViewport?window.visualViewport.height:window.innerHeight;
-  let k=Math.max(.5,Math.min(1,(vh-top-(document.body.classList.contains("ingame")&&innerWidth<=640?2:32))/Math.max(1,nat)));k=Math.min(k,fitLock);fitLock=k;
+  const ing=document.body.classList.contains("ingame"),phone=ing&&innerWidth<=640;
+  const vh=window.visualViewport?window.visualViewport.height:window.innerHeight,top=t.getBoundingClientRect().top+window.scrollY,tgt=vh-top-(phone?2:32);
+  let nat=s.offsetHeight,k=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)));k=Math.min(k,fitLock);
+  if(phone){
+    /* telefon: sahneyi ekrana göre genişlet/uzat, sonra tek parça küçült; yanlarda ve altta boşluk kalmaz */
+    for(let i=0;i<4;i++){s.style.width=(100/k)+'%';s.style.minHeight=(tgt/k)+'px';nat=s.offsetHeight;const kn=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)),0);if(Math.abs(kn-k)<.004)break;k=Math.min(kn,fitLock)}
+    fitLock=Math.min(fitLock,k);
+    if(k<.995){FIT=k;s.style.transformOrigin='top left';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}
+    else{s.style.width='';k=1}
+    return}
+  fitLock=k;
   if(k<.995){FIT=k;const esw=!!s.querySelector('.esgrid,.rdwrap');s.style.transformOrigin=esw?'top left':'top center';if(esw)s.style.width=(100/k)+'%';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}}
 const fitSoon=()=>{cancelAnimationFrame(fitQ);fitQ=requestAnimationFrame(fitStage)};
 function initUI(){
@@ -2376,7 +2389,7 @@ function initUI(){
 initUI();
 
 function fitMenu(){const me=$('#menu');if(!me||me.hidden)return;me.style.zoom='';if(innerWidth>700)return;
- const h=me.scrollHeight,k=Math.min(1,(innerHeight-2)/h);if(k<.999)me.style.zoom=k.toFixed(3)}
+ const h=me.scrollHeight,k=Math.max(.75,Math.min(1,(innerHeight-8)/h));if(k<.999)me.style.zoom=k.toFixed(3)}
 addEventListener('resize',()=>setTimeout(fitMenu,50));addEventListener('orientationchange',()=>setTimeout(fitMenu,300));
 setTimeout(fitMenu,300);setTimeout(fitMenu,1200);
 
