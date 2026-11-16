@@ -752,6 +752,9 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 
 @media (max-width:700px){body:has(#menu:not([hidden])){padding-block:8px 0}}
 
+/* dokunmatik ekranda 'hover' parmağın son yerinde takılı kalır; seçilmemiş kart öne çıkmasın */
+@media (hover:none),(pointer:coarse){.hc.sel:hover{transform:translateY(calc(var(--y,0px) - 12px)) rotate(var(--r,0deg));z-index:auto}.hc.sel:hover img{box-shadow:0 0 0 3px var(--sari),0 0 18px 2px rgba(242,207,91,.85),0 8px 14px rgba(0,0,0,.55)}}
+
 </style>
 <div id="app">
  <section id="menu">
@@ -1285,7 +1288,10 @@ async function kk(){
   function setShield(){$$('#shd svg').forEach((s,i)=>{s.classList.toggle('on',i<shield)})}
   function kill(p,why){p.alive=false;disc.push(...p.hand);p.hand=[];graves.push(p);
     if(p===katil){winner='village';reason=`Katil ${p.name} öldü: ${why}`}
-    else if(alive().length<=2&&katil.alive){winner='katil';const o=alive().find(x=>x!==katil);reason=`Hayatta sadece 2 oyuncu kaldı: Katil ${katil.name} ve ${o.name}. Köylüler Katil'i bulamadı.`}}
+    else if(alive().length<=2&&katil.alive){winner='katil';const o=alive().find(x=>x!==katil);reason=`Hayatta sadece 2 oyuncu kaldı: Katil ${katil.name} ve ${o.name}. Köylüler Katil'i bulamadı.`}
+    else exposed()}
+  /* Katil dışındaki tüm hayatta kalanların rengi sorguyla açığa çıktıysa, kalan tek kişi Katil'dir: köy kazanır */
+  function exposed(){if(winner||!katil.alive)return;const o=alive().filter(x=>x!==katil);if(o.length&&o.every(x=>x.revealed)){winner='village';reason=`Katil dışındaki herkesin rengi sorguda açığa çıktı. Geriye kalan tek kişi Katil: ${katil.name}.`}}
   async function deathFx(p,wk){const c=p.cat;if(wk)await fly(wk.img,$('#rr')||chestEl,c.wrap,{w:54,dur:650});c.mood('shock',900);sfx('skull');await sleep(500);shake();flash('rgba(106,47,87,.8)');sfx('boom');burstAt(c.wrap,{n:34,colors:[CH[p.color],'#fbf1dc','#6a2f57'],speed:7,shapes:['circle','paw']});
     c.die();upd();await sleep(700)}
   const deadCol=()=>new Set(graves.map(g=>g.color));
@@ -1350,7 +1356,7 @@ async function kk(){
     else{t.cat.mood('happy',1400);t.cat.say('Beraat ettim!',{kind:'yes',ms:1400});burstAt(t.cat.wrap,{n:18,colors:[CH[t.color],'#9bc65a','#fbf1dc']});sfx('good');await sleep(900)}
     learnVotes(t,q,m,votes,executed);
     q.masum=true;deck.unshift(...q.hand);q.hand=[];draw4(q);
-    q.cat.mood('happy',1200);q.cat.slot('<span class="tagc">'+ic('check')+' Masum</span>');sfx('ding');
+    q.cat.mood('happy',1200);q.cat.slot('<span class="tagc">'+ic('check')+' Masum</span>');sfx('ding');exposed();
     revealHTML='';actOnly(null);await sleep(600)}
   /* oyun başı */
   paint();
