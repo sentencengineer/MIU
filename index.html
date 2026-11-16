@@ -1721,7 +1721,7 @@ async function varmi(level){
   const cand=()=>VTYPES.filter(t=>!elim.has(t.key));
   const sat=(t,cols)=>cols.length===1?t.cols.includes(cols[0]):t.key===vkey(cols);
   function paint(){
-    bot.cat.sub(`${sesStar(bot.name)} ${mcount(bot.hand.length)} kart`);me.cat.sub(`${sesStar(myName())} <b>${me.hand.length}</b> kart kaldı`);
+    bot.cat.sub(`${sesStar(bot.name)} ${mcount(bot.hand.length)} kart`);me.cat.sub(sesStar(myName()));
     bot.cat.slot('');
     setCenter(`<div class="cinfo">${chip('Seviye <b>'+level+'</b> kart')}</div>
       <div class="revealrow" id="brow">${bot.slots.map(s=>s.open?`<div class="rc">${cimg(s.k,s.k.uid===lastFound?'found':'')}</div>`:`<div class="rc">${cimg({img:ART.back,cols:['x','x']})}</div>`).join('')}</div>
