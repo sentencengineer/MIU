@@ -746,6 +746,8 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 
 .espiles.out{position:absolute;z-index:6;min-height:0;background:rgba(58,26,42,.55);border-radius:12px;padding:4px 8px}
 
+.revealrow .rc.still{animation:none}
+
 </style>
 <div id="app">
  <section id="menu">
@@ -1720,12 +1722,16 @@ async function varmi(level){
   const colSt={};const elim=new Set(),yes=[],asked=new Set();
   const cand=()=>VTYPES.filter(t=>!elim.has(t.key));
   const sat=(t,cols)=>cols.length===1?t.cols.includes(cols[0]):t.key===vkey(cols);
+  const SID=Math.random();
   function paint(){
     bot.cat.sub(`${sesStar(bot.name)} ${mcount(bot.hand.length)} kart`);me.cat.sub(sesStar(myName()));
     bot.cat.slot('');
+    const pb=window.__vmPB,pm=window.__vmPM;
+    const stB=i=>pb&&pb.sid===SID&&pb.o[i]===!!bot.slots[i].open?' still':'',stM=i=>pm&&pm.sid===SID&&i<pm.n?' still':'';
+    window.__vmPB={sid:SID,o:bot.slots.map(s=>!!s.open)};window.__vmPM={sid:SID,n:me.opened.length};
     setCenter(`
-      <div class="revealrow" id="brow">${bot.slots.map(s=>s.open?`<div class="rc">${cimg(s.k,s.k.uid===lastFound?'found':'')}</div>`:`<div class="rc">${cimg({img:ART.back,cols:['x','x']})}</div>`).join('')}</div>
-      ${me.opened.length?`<div class="revealrow">${me.opened.map(k=>`<div class="rc ${k.uid===lastFound?'':'bdim'}">${cimg(k,k.uid===lastFound?'found':'')}</div>`).join('')}</div>`:''}
+      <div class="revealrow" id="brow">${bot.slots.map((s,i)=>s.open?`<div class="rc${stB(i)}">${cimg(s.k,s.k.uid===lastFound?'found':'')}</div>`:`<div class="rc${stB(i)}">${cimg({img:ART.back,cols:['x','x']})}</div>`).join('')}</div>
+      ${me.opened.length?`<div class="revealrow">${me.opened.map((k,i)=>`<div class="rc${stM(i)} ${k.uid===lastFound?'':'bdim'}">${cimg(k,k.uid===lastFound?'found':'')}</div>`).join('')}</div>`:''}
       <div class="gems" title="Rakipte hangi renk var?">${COLORS.map(c=>`<span class="gem${colSt[c]===-1?' dim':''}" style="--c:${CH[c]}">${colSt[c]===1?ic('check'):colSt[c]===-1?ic('cross'):''}</span>`).join('')}</div>`);
     showHand(me.hand)}
   function guessOn(owner,cols){return owner.hand.findIndex(k=>vkey(k.cols)===vkey(cols))}
