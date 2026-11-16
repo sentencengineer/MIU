@@ -1877,18 +1877,18 @@ async function esles(level){
   if(res==='again'&&cfg)netNext();return res}
 
 /* ---------- Renk Dörtlüsü ---------- */
-const RDW=7,RDH=4;
+const RDW=8,RDH=4;
 const rdOri=k=>k.cols[0]===k.cols[1]?[k]:[k,Object.assign({},k,{cols:[k.cols[1],k.cols[0]],rot:true})];
 /* tahta: board[c] = alttan üste kartlar. Kart 2 kare: alt kare cols[1], üst kare cols[0] */
 function rdCell(bd,c,r){const k=bd[c][r>>1];return k?((r&1)?k.cols[0]:k.cols[1]):null}
-function rdLine(bd,pred){
+function rdLine(bd){
   const D=[[1,0],[0,1],[1,1],[1,-1]],R=RDH*2;
-  for(let c=0;c<RDW;c++)for(let r=0;r<R;r++){const col=rdCell(bd,c,r);if(!col||(pred&&!pred(col)))continue;
+  for(let c=0;c<RDW;c++)for(let r=0;r<R;r++){const col=rdCell(bd,c,r);if(!col)continue;
     for(const [dc,dr] of D){const cells=[[c,r]];let ok=true;
       for(let s=1;s<4;s++){const cc=c+dc*s,rr=r+dr*s;if(cc<0||cc>=RDW||rr<0||rr>=R||rdCell(bd,cc,rr)!==col){ok=false;break}cells.push([cc,rr])}
       if(ok)return{col,cells}}}
   return null}
-async function rdort(level){
+async function rdort(){
   SPEED=1;
   const cfg=(NETL.cur&&NETL.cur.game==='rd')?NETL.cur:null,isHost=!cfg||NETL.host,selfP=cfg?netSelfPeer():null;
   const seats=cfg?cfg.seats.map(x=>({name:x.n,kind:x.p?'human':'bot',peer:x.p||null,local:!!x.p&&x.p===selfP,hand:[]})):[{name:myName(),kind:'human',local:true,hand:[]},{name:sesNames(1,[myName()])[0],kind:'bot',hand:[]}];
@@ -1905,11 +1905,7 @@ async function rdort(level){
   window.HANDSC=WIDE?1:.8;
   const me=seats[mi],bot=seats[oi];me.cat=C[0];bot.cat=C[1];
   window.__rd={me,bot,seats};
-  const sd=cfg?cfg.seed:(Math.random()*4294967296)>>>0,PERS=(cfg?cfg.opt:level)===2;
-  const deck=shuffleSeed(mkDeck(),sd);
-  {const cs=PERS?shuffleSeed(COLORS,(sd^0x7f4a7c15)>>>0):null;seats.forEach((x,i)=>{x.cols=PERS?new Set(cs.slice(i*3,i*3+3)):null;x.cp=PERS?(c=>x.cols.has(c)):(()=>true)})}
-  const oppOf=P=>seats[seats[0]===P?1:0];
-  const rdWinner=(b,P)=>{const a=rdLine(b,P.cp);if(a)return{w:P,line:a};const o=oppOf(P),l=rdLine(b,o.cp);return l?{w:o,line:l}:null};
+  const deck=shuffleSeed(mkDeck(),cfg?cfg.seed:(Math.random()*4294967296)>>>0);
   const IDS=[...new Map(mkDeck().map(k=>[vkey(k.cols),k])).values()].map(k=>k.cols);
   const bd=Array.from({length:RDW},()=>[]);
   const draw=(P,fresh)=>{while(P.hand.length<4&&deck.length){const k=deck.pop();P.hand.push(k);if(fresh)fresh.add(k.uid)}};
@@ -1918,20 +1914,20 @@ async function rdort(level){
   setCenter(`<div class="rdwrap"><div class="rdboard" id="rdb" style="--cw:${cw}px;--ch:${ch}px;--gx:${gx}px;width:${bw}px;height:${Math.round(ch*RDH)}px">${Array.from({length:RDW},(_,c)=>`<button class="rdcol" data-c="${c}" aria-label="Sütun ${c+1}">${Array.from({length:RDH},()=>'<div class="rdslot"></div>').join('')}</button>`).join('')}</div></div>`);
   const board=$('#rdb'),colEls=[...board.querySelectorAll('.rdcol')];
   const full=c=>bd[c].length>=RDH;
-  const paint=()=>{seats.forEach(x=>{x.cat.sub(sesStar(x.name));if(PERS)x.cat.slot('<span class="tagc">'+[...x.cols].map(dotc).join('')+'</span>')})};
-  const winsAny=(b,hand,P)=>{for(const k0 of hand)for(const k of rdOri(k0))for(let c=0;c<RDW;c++){if(b[c].length>=RDH)continue;const nb=b.map(a=>a.slice());nb[c].push(k);const r=rdWinner(nb,P);if(r&&r.w===P)return true}return false};
-  function pot(b,pred){let n=0;const R=RDH*2;for(let c=0;c<RDW;c++)for(let r=0;r<R;r++){const col=rdCell(b,c,r);if(!col||(pred&&!pred(col)))continue;for(const [dc,dr] of [[1,0],[0,1],[1,1],[1,-1]]){let m=1;for(let t=1;t<3;t++){const cc=c+dc*t,rr=r+dr*t;if(cc<0||cc>=RDW||rr<0||rr>=R||rdCell(b,cc,rr)!==col)break;m++}if(m===3)n++}}return n}
+  const paint=()=>{seats.forEach(x=>x.cat.sub(sesStar(x.name)))};
+  const winsAny=(b,hand)=>{for(const k0 of hand)for(const k of rdOri(k0))for(let c=0;c<RDW;c++){if(b[c].length>=RDH)continue;const nb=b.map(a=>a.slice());nb[c].push(k);if(rdLine(nb))return true}return false};
+  function pot(b){let n=0;const R=RDH*2;for(let c=0;c<RDW;c++)for(let r=0;r<R;r++){const col=rdCell(b,c,r);if(!col)continue;for(const [dc,dr] of [[1,0],[0,1],[1,1],[1,-1]]){let m=1;for(let t=1;t<3;t++){const cc=c+dc*t,rr=r+dr*t;if(cc<0||cc>=RDW||rr<0||rr>=R||rdCell(b,cc,rr)!==col)break;m++}if(m===3)n++}}return n}
   function botMove(BP){
     let best=null,bs=-1e9;
     for(const k0 of BP.hand)for(const k of rdOri(k0))for(let c=0;c<RDW;c++){if(full(c))continue;
       const nb=bd.map(a=>a.slice());nb[c].push(k);
-      let s=0;const OP=oppOf(BP),res0=rdWinner(nb,BP);
-      if(res0)s=res0.w===BP?1000:-1000;
+      let s=0;
+      if(rdLine(nb))s=1000;
       else{
-        let t=0;for(const cols of IDS){let w=false;for(const cc of rdOri({cols})){for(let c2=0;c2<RDW&&!w;c2++){if(nb[c2].length>=RDH)continue;const n2=nb.map(a=>a.slice());n2[c2].push(cc);const r2=rdWinner(n2,OP);if(r2&&r2.w===OP)w=true}}if(w)t++}
+        let t=0;for(const cols of IDS){let w=false;for(const cc of rdOri({cols})){for(let c2=0;c2<RDW&&!w;c2++){if(nb[c2].length>=RDH)continue;const n2=nb.map(a=>a.slice());n2[c2].push(cc);if(rdLine(n2))w=true}}if(w)t++}
         const risk=1-Math.pow(1-.14,t);
         const rest=BP.hand.filter(x=>x.uid!==k.uid);
-        s=-110*risk+(winsAny(nb,rest,BP)?110*(1-risk):0)+(PERS?1.8*pot(nb,BP.cp)-1.0*pot(nb,OP.cp):1.5*pot(nb))-Math.abs(c-3)*1.2+Math.random()*4}
+        s=-110*risk+(winsAny(nb,rest)?110*(1-risk):0)+1.5*pot(nb)-Math.abs(c-(RDW-1)/2)*1.2+Math.random()*4}
       if(s>bs){bs=s;best={k:k0,c,o:k}}}
     return best}
   async function place(P,k,c,from,o){
@@ -1944,7 +1940,7 @@ async function rdort(level){
     line.cells.forEach(([c,r])=>{const d=document.createElement('div');d.className='rdwin';d.style.cssText=`left:${c*(cw+gx)}px;bottom:${r*ch/2}px;width:${cw}px;height:${ch/2}px;--wc:${CH[line.col]}`;board.appendChild(d)});
     sfx('good');await sleep(900)}
   paint();
-  await banner('Renk Dörtlüsü',{icon:'bolt',bg:'var(--sari)',fg:'#3a1a2a',sub:PERS?`Kişisel renkler: sen ${[...me.cols].map(c=>CN[c]).join(', ')}`:`${bot.name} ile karşı karşıyasın`,ms:PERS?2000:1300});
+  await banner('Renk Dörtlüsü',{icon:'bolt',bg:'var(--sari)',fg:'#3a1a2a',sub:`${bot.name} ile karşı karşıyasın`,ms:1300});
   let turn=cfg?cfg.start:(SES.rdStart==null?(Math.random()<.5?0:1):1-SES.rdStart);if(!cfg)SES.rdStart=turn;let winner=null,line=null,seq=0;window.__rdMoves=[];window.__rdRes=null;
   const fresh0=new Set(me.hand.map(k=>k.uid));
   showHand(me.hand,{fresh:fresh0,ok:()=>true,onClick:()=>{}});
@@ -1972,7 +1968,8 @@ async function rdort(level){
     if(cfg&&P.local)netSend(seq,{u:mv.k.uid,c:mv.c,r:mv.o.rot?1:0});
     seq++;fresh0.clear();(window.__rdMoves=window.__rdMoves||[]).push([mv.k.uid,mv.c,mv.o.rot?1:0]);
     await place(P,mv.k,mv.c,mv.r,mv.o);
-    {const rw=rdWinner(bd,P);if(rw){line=rw.line;winner=rw.w;await showWin(line);break}}
+    line=rdLine(bd);
+    if(line){winner=P;await showWin(line);break}
     if(!P.hand.length){const fr=new Set();for(let i=0;i<4&&deck.length;i++){const k=deck.pop();P.hand.push(k);fr.add(k.uid)}paint();if(P.local){fr.forEach(u=>fresh0.add(u));showHand(me.hand,{fresh:fr})}}
     turn=1-turn}
   actOnly(null);paint();window.__rdRes={w:winner?winner.name:null,n:seq,sid:cfg?cfg.sid:null};
@@ -2213,7 +2210,7 @@ function initOnline(){
 const RULES={
 kk:['Katil Kim','<ul><li>7 oyuncu. Biri Katil (Mürdüm), altısı Köylü. Herkes gizli bir Temsil kartı ve 4 kartla başlar. Temsil kartları oynanmaz, sadece kimliği belirler. Kimliğini sadece sen bilirsin (köşedeki kart).</li><li><b>Gündüz (sıcak patates):</b> kartlar sırayla dolaşır. İlk turda başlayan oyuncu desteden fazladan bir kart çeker ve sağındakine kapalı bir kart verir. Sıradaki, soldakinin verdiği kartı tutar ya da kasaya bırakıp desteden başka kart çeker, sonra sağındakine bir kart verir. Sonra herkes Gece Sandığı\'na gizlice bir kart koyar. Sonraki turlarda sıran gelince önce soldakinin kartını alır, desteden bir kart çeker, sandığa bir kart koyar ve sağındakine bir kart verirsin.</li><li><b>Gece:</b> sandıkta en az bir Saf Mürdüm varsa Kızıl Kalkan çalışır, kimse ölmez. Üçüncü kalkanda Katil ölür. Kalkan yoksa sandıktaki her Mürdüm hibriti, diğer renginin sahibini öldürür. Aynı kişiyi iki ayrı kart hedef alırsa (aynı karttan iki tane) o kişi kurtulur, ikisi de onu öldüremez.</li><li><b>Sorgu</b> (2. turdan itibaren): elinde en az 2 Mürdüm karesi ve 2 kendi renginden kare varsa birini sorguya çekebilirsin. Sorgu açan oyuncunun rengi herkese açıklanır, bu yüzden Katil sorgu açamaz. Sorgulanan elini gösterir, diğerleri İnfaz ya da Beraat oyu verir. İnfazda kimlik açılır: Mürdüm ise köy kazanır, değilse o oyuncu ölür. Sorguyu açan Tescilli Masum olur ve 4 yeni kart çeker.</li><li>Katil, hayatta iki kişi kalınca kazanır. Katil ölürse köy kazanır.</li></ul>'],
 ok:['Renk Okeyi','<ul><li>4 oyuncu, 4 kartlık el. Başlayan oyuncu 5 kartla başlar ve çekmeden atar.</li><li>Sıran gelince kapalı desteden çek ya da açık kartı al, sonra bir kart at.</li><li><b>Monokrom:</b> 4 kartın 8 karesinde aynı renkten toplam 5 veya daha fazla kare. 1 puan.</li><li><b>Gökkuşağı:</b> 8 karede yedi rengin hepsinden en az 1 kare. 3 puan.</li><li>Şart sağlanınca <b>Bitir</b> düğmesi belirir. İlk turda (herkes bir kez oynayana kadar) el açmak yasaktır. Şart yokken el açılamaz.</li><li>Saf kart 2 kare, Hibrit kart iki renkten 1\'er kare sayılır.</li></ul>'],
-rd:['Renk Dörtlüsü','<ul><li>2 oyuncu. Ortada 7 sütun var, her sütuna en çok 4 kart konur. Elinde 4 kart bulunur; dördü de bitince yeni 4 kart gelir. Hibrit kartı koymadan önce döndürebilirsin.</li><li>Sırası gelen, elinden bir kart seçip bir sütuna koyar; kart sütunun en üstüne oturur.</li><li>Saf kart aynı renkten 2 kare, Hibrit kart iki farklı renkten 1\'er kare sayılır. Kareler kartın üst ve alt yarısıdır.</li><li>Renkler ortaktır: aynı renkten 4 kareyi yan yana, üst üste ya da çapraz tamamlayan oyuncu kazanır. Başkasının başladığı hattı sen de bitirebilirsin.</li><li>Kişisel renk seçeneğinde 7 renkten 3\'ü sana, 3\'ü rakibe düşer, 1 renk tarafsızdır. Sadece kendi renklerinden birini tamamlarsan kazanırsın; rakibin rengini sen tamamlarsan o kazanır.</li><li>Rakibe 3\'lü hazır bırakma. Tahta dolarsa oyun berabere biter.</li></ul>'],
+rd:['Renk Dörtlüsü','<ul><li>2 oyuncu. Ortada 8 sütun var, her sütuna en çok 4 kart konur. Elinde 4 kart bulunur; dördü de bitince yeni 4 kart gelir. Hibrit kartı koymadan önce döndürebilirsin.</li><li>Sırası gelen, elinden bir kart seçip bir sütuna koyar; kart sütunun en üstüne oturur.</li><li>Saf kart aynı renkten 2 kare, Hibrit kart iki farklı renkten 1\'er kare sayılır. Kareler kartın üst ve alt yarısıdır.</li><li>Renkler ortaktır: aynı renkten 4 kareyi yan yana, üst üste ya da çapraz tamamlayan oyuncu kazanır. Başkasının başladığı hattı sen de bitirebilirsin.</li><li>Rakibe 3\'lü hazır bırakma. Tahta dolarsa oyun berabere biter.</li></ul>'],
 es:['Eşleştirme','<ul><li>2 oyuncu. Ortada yüzü kapalı kartlar dizilir: Kolay 12, Orta 24, Zor 36 kart. Temsil ve Saf kartlar oyunda yoktur.</li><li>Sadece Hibrit (iki renkli) kartlar kullanılır; Saf kartlar yoktur. Kolay ve Orta seviyede her karttan 2, Zor seviyede 3 tane vardır.</li><li>Sıra sende: Kolay ve Orta\'da 2, Zor\'da 3 kapalı kart seç. Kartlar seçildiği anda açılır, ikiniz de görürsünüz.</li><li>Seçtiklerin hepsi <b>aynı karttaysa</b> kartlar masadan çıkıp senin yığınına eklenir, <b>1 puan</b> alırsın ve bir kez daha seçersin.</li><li>Aynı değillerse kartlar kapanır ve sıra rakibe geçer.</li><li>Kartlar bitince en çok puanı olan kazanır. Puan eşitse daha az kaçıran kazanır.</li></ul>'],
 vm:['Var mı Yok mu','<ul><li>2 oyuncu. Kolay seviyede 2, orta seviyede 3, zor seviyede 4 kart alırsın. Sadece sen kendi elini görürsün.</li><li>Sırası gelen rakibine evet/hayır sorusu sorar: <b>Renk var mı?</b>, <b>Aynı kartta 2 renk</b> ya da <b>Saf (tek renk) kart</b>.</li><li>Cevap <b>evetse</b> sıra değişmez. Cevap <b>hayırsa</b> sıra rakibe geçer.</li><li>Kart sorusuna cevap <b>evetse</b> o kart hemen açılır, rakibin eli bir azalır ve sıra sende kalır.</li><li>"Renk var mı?" sorusu sadece bilgi verir.</li><li>Rakibin elini ilk bitiren kazanır.</li></ul>'],
 bl:['Renk Blöfü','<ul><li>3–6 oyuncu. Her tur kartlar baştan dağıtılır, herkese 4 kart. Sadece kendi elini görürsün.</li><li>Her tur bir Aktif Renk belirlenir. Teklif, kendi elindeki o rengin kare sayısı iddiasıdır (en fazla 8).</li><li>Sıra sende: teklifi yükselt, <b>BLÖF!</b> de ya da <b>Pas</b> de. Kendi teklifine blöf diyemezsin. Oyun boyunca 3 pas hakkın var; hakkın bitince artık pas diyemezsin (elenmezsin).</li><li>Blöf denince yalnızca bir önceki teklifi veren oyuncunun eli açılır. Elinde teklif kadar ya da daha fazla kare varsa teklif doğrudur ve blöf diyen kaybeder. Aksi halde teklifi veren kaybeder.</li><li>Kaybeden <b>Ölümcül Çekiliş</b> yapar: desteden bir kart çeker. Kartta aktif renk ya da Lanet Havuzu\'ndaki bir renk varsa elenir. Yoksa aktif renk havuzuna eklenir.</li><li><b>Lanet Havuzu:</b> Ölümcül Çekiliş\'ten sağ çıkan herkesin kendi havuzudur. O turun aktif rengi havuza kalıcı eklenir ve adının altında renk noktası olarak görünür. Havuz büyüdükçe çekilen kartın seni eleme ihtimali artar.</li><li>Ayakta kalan son oyuncu Renk Ustası olur.</li></ul>']
@@ -2226,7 +2223,7 @@ const WAGONS=[
  {k:'ok',id:'salon',name:'Okey Salonu',title:'Renk Okeyi',meta:'4 oyuncu · 3 bot',desc:'Çek, at; aynı renkten 5 kare ya da yedi rengin hepsini topla.',acc:'salon',look:0},
  {k:'vm',id:'gozlem',name:'Kütüphane',title:'Var mı Yok mu',meta:'2 oyuncu · 1 bot',desc:'Rakibin kartlarını evet/hayır sorularıyla bul. Elini önce bitiren kazanır.',seg:'seg2',acc:'gozlem',look:5},
  {k:'es',id:'fut',name:'Oyuncak Odası',title:'Eşleştirme',meta:'2 oyuncu · 1 bot',desc:'Kapalı kartlardan aynı olanları bul. Kartları en çok eşleştiren kazanır.',seg:'seg3',acc:'fut',look:3},
- {k:'rd',id:'rd',name:'Strateji Odası',title:'Renk Dörtlüsü',meta:'2 oyuncu · 1 bot',desc:'Kartları sütunlara diz; aynı renkten 4 kareyi yan yana, üst üste ya da çapraz tamamla.',seg:'seg4',acc:'fut',look:4},
+ {k:'rd',id:'rd',name:'Strateji Odası',title:'Renk Dörtlüsü',meta:'2 oyuncu · 1 bot',desc:'Kartları sütunlara diz; aynı renkten 4 kareyi yan yana, üst üste ya da çapraz tamamla.',acc:'fut',look:4},
  {k:'bl',id:'loko',name:'Oyun Odası',title:'Renk Blöfü',meta:'3–6 oyuncu',desc:'Aktif rengin kare sayısını iddia et, yükselt ya da blöf de.',seg:'seg',acc:'loko',look:1}
 ];
 
@@ -2294,7 +2291,7 @@ function trainSVG(){const cols=[CH.turuncu,CH.murdum,CH.yesil,CH.mavi,CH.eflatun
   [18,34,50,70].forEach(x=>o+=`<circle cx='${x}' cy='38' r='${x===70?7:6}' fill='#170c15' stroke='#cdb7c4' stroke-width='1.5'/>`);o+='</g>';
   cols.forEach((c,i)=>{const x=92+i*88;o+=`<g><rect x='${x-8}' y='30' width='10' height='2' fill='#cdb7c4'/><rect x='${x}' y='10' width='80' height='26' rx='3' fill='${c}'/><rect x='${x}' y='10' width='80' height='4' fill='rgba(255,255,255,.22)'/>`;for(let k=0;k<4;k++)o+=`<rect x='${x+8+k*18}' y='17' width='12' height='9' fill='${CH.sari}' opacity='.9'/>`;o+=`<circle cx='${x+16}' cy='40' r='5' fill='#170c15'/><circle cx='${x+64}' cy='40' r='5' fill='#170c15'/></g>`});
   return `<svg viewBox='-6 0 ${92+6*88} 48' xmlns='http://www.w3.org/2000/svg'>${o}</svg>`}
-let vmN=3,blN=4,esN=1,rdN=1,lastMode=null;
+let vmN=3,blN=4,esN=1,lastMode=null;
 const TITLES={kk:'Katil Kim',ok:'Renk Okeyi',bl:'Renk Blöfü',vm:'Var mı Yok mu',es:'Eşleştirme',rd:'Renk Dörtlüsü'};
 function mkTile(src,rc,cb){const im=new Image();im.onload=()=>{const mg=14,w=im.width-2*mg,h=im.height-2*mg,c=document.createElement('canvas');c.width=w*2;c.height=h*2;const x=c.getContext('2d');
   [[0,0,1,1],[1,0,-1,1],[0,1,1,-1],[1,1,-1,-1]].forEach(([i,j,sx,sy])=>{x.save();x.translate(i*w+(sx<0?w:0),j*h+(sy<0?h:0));x.scale(sx,sy);x.drawImage(im,mg,mg,w,h,0,0,w,h);x.restore()});
@@ -2318,12 +2315,12 @@ function enterWagon(mode){const w=WAGONS.find(x=>x.k===mode);lastRoom=w.id;MUSIC
 let lastRoom=null;
 function showMenu(){if(NETL.phase==='game'){NETL.phase='party';NETL.cur=null;NETL.waiters.forEach(w=>clearInterval(w.timer));NETL.waiters=[]}partyRender();document.body.classList.remove("ingame");FIT=1;{const t=$('#table'),s=$('#stage');s.style.transform='';t.style.height=''}MUSIC.play('menu');delete document.documentElement.dataset.w;cancelAll();$('#modal').hidden=true;$('#menu').hidden=false;setTimeout(fitMenu,30);$('#table').hidden=true;window.scrollTo(0,0)}
 async function launch(mode,opt,keep){
-  if(!keep&&(mode==='rd'||mode==='es'||mode==='vm'||mode==='ok'||mode==='bl'||mode==='kk')&&NETL.phase==='party'&&NETL.host&&netPlayers().length>=2){netStartHost(mode,mode==='es'?(opt||esN):mode==='vm'?(opt||vmN):mode==='bl'?(opt||blN):mode==='rd'?(opt||rdN):0);return}
+  if(!keep&&(mode==='rd'||mode==='es'||mode==='vm'||mode==='ok'||mode==='bl'||mode==='kk')&&NETL.phase==='party'&&NETL.host&&netPlayers().length>=2){netStartHost(mode,mode==='es'?(opt||esN):mode==='vm'?(opt||vmN):mode==='bl'?(opt||blN):0);return}
   cancelAll();$('#modal').hidden=true;lastMode=mode;
   document.body.classList.add('ingame');$('#menu').hidden=true;$('#table').hidden=false;enterWagon(mode);$('#stage').classList.toggle('noidle',mode==='ok');
   $('#hand').innerHTML='';$('#center').innerHTML='';$('#seats').innerHTML='';say('');
   if(!keep){if(NETL.phase==='game')NETL.phase='party';NETL.cur=null;sesReset()}fitLock=1;const my=SID;let r='again';
-  try{while(r==='again'){r=await({kk:()=>kk(),ok:()=>okey(),bl:()=>bluff(opt||blN),vm:()=>varmi(opt||vmN),es:()=>esles(opt||esN),rd:()=>rdort(opt||rdN)}[mode])()}}
+  try{while(r==='again'){r=await({kk:()=>kk(),ok:()=>okey(),bl:()=>bluff(opt||blN),vm:()=>varmi(opt||vmN),es:()=>esles(opt||esN),rd:()=>rdort()}[mode])()}}
   catch(e){if(!(e instanceof Cancel)){console.error(e);window.__ERR=e.message+' '+e.stack;say('Bir hata oluştu: '+e.message);return}}
   if(my===SID&&r==='menu')showMenu()}
 function syncHud(){$('#spd').textContent='Hız: '+PACES.find(p=>p[0]===PACE)[1];['#snd','#snd2'].forEach(s=>$(s).innerHTML=ic(MUTE?'mute':'spk'));['#mus','#mus2'].forEach(s=>$(s).innerHTML=ic(NOMUS||MUTE?'nonote':'note'))}
@@ -2349,7 +2346,6 @@ function initUI(){
   ['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>unlockAudio($('#menu').hidden?lastRoom:'menu'),true));
   const seg=$('#seg');[3,4,5,6].forEach(k=>{const b=document.createElement('button');b.textContent=k+' kişi';b.setAttribute('aria-pressed',k===blN);b.onclick=()=>{blN=k;[...seg.children].forEach((x,i)=>x.setAttribute('aria-pressed',i+3===k))};seg.appendChild(b)});
   const seg2=$('#seg2');[[2,'Kolay'],[3,'Orta'],[4,'Zor']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t+' · '+k;b.setAttribute('aria-pressed',k===vmN);b.onclick=()=>{vmN=k;[...seg2.children].forEach((x,i)=>x.setAttribute('aria-pressed',i+2===k))};seg2.appendChild(b)});
-  const seg4=$('#seg4');[[1,'Ortak renk'],[2,'Kişisel renk']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('aria-pressed',k===rdN);b.onclick=()=>{rdN=k;[...seg4.children].forEach((x,i)=>x.setAttribute('aria-pressed',i+1===k))};seg4.appendChild(b)});
   const seg3=$('#seg3');[[1,'Kolay · 12'],[2,'Orta · 24'],[3,'Zor · 36']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('aria-pressed',k===esN);b.onclick=()=>{esN=k;[...seg3.children].forEach((x,i)=>x.setAttribute('aria-pressed',i+1===k))};seg3.appendChild(b)});
   try{new ResizeObserver(fitSoon).observe($('#stage'))}catch(e){}
   window.addEventListener('resize',()=>{fitLock=1;fitSoon()});window.addEventListener('orientationchange',()=>setTimeout(()=>{fitLock=1;fitSoon()},250));
