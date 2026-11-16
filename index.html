@@ -639,9 +639,6 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 @keyframes esno{20%,60%{transform:translateX(-3px)}40%,80%{transform:translateX(3px)}}
 .esc.gone{visibility:hidden}
 
-#felt:has(.esgrid) .espiles{position:absolute;z-index:4;min-height:0}
-#felt:has(.esgrid) .espiles:first-child{top:10px;right:16px}
-#felt:has(.esgrid) .espiles:last-child{bottom:10px;left:16px}
 [data-w="loko"] #center .cinfo{gap:4px;flex-wrap:nowrap}[data-w="loko"] #center .cinfo .chip{font-size:12px;padding:3px 8px}
 
 #hand:empty{display:none}
@@ -746,6 +743,8 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 #menu.inparty .cm{width:min(84px,calc((100% - 10px*(var(--n) - 1))/var(--n)))}
 #menu.inparty .cm.me{width:min(100px,calc((100% - 10px*(var(--n) - 1))/var(--n)*1.2))}
 #menu.inparty .cn{font-size:12px}
+
+.espiles.out{position:absolute;z-index:6;min-height:0;background:rgba(58,26,42,.55);border-radius:12px;padding:4px 8px}
 
 </style>
 <div id="app">
@@ -1372,7 +1371,7 @@ async function kk(){
       if(round===1){
         if(!pot)await drawFor(p);
         else{let swap;
-          swap=false;
+          swap=true;
           if(swap){p.hand=p.hand.filter(c=>c!==pot);disc.push(pot);if(p.human)showHand(me.hand);
             await fly(pot.img,p.human?$('#hand'):p.cat.wrap,deckEl(),{w:46,dur:420});await drawFor(p)}}
       }else{await drawFor(p);await putChest(p)}
@@ -1810,7 +1809,8 @@ async function esles(level){
   const K=new Map();let turn=cfg?cfg.start:(Math.random()<.5?0:1),seq=0;
   const forget=.34;
   function mkPile(p,id){return `<div class="espile" id="${id}"><div class="st"></div><b></b></div>`}
-  setCenter(`<div class="espiles">${mkPile(bot,'espb')}</div><div class="esgrid" id="esg"></div><div class="espiles">${mkPile(me,'espm')}</div>`);
+  setCenter(`<div class="esgrid" id="esg"></div>`);
+  [['espb',FT-34,'right'],['espm',FT+feltH+(WIDE?44:36),'left']].forEach(([id,top,side])=>{const d=document.createElement('div');d.className='espiles out';d.style.top=top+'px';d.style[side]='12px';d.innerHTML=mkPile(null,id);$('#ring').appendChild(d)});
   const g=$('#esg'),felt=$('#felt');
   g.style.setProperty('--cols',L.cols);g.classList.toggle('tight',L.cols<=4&&!WIDE);if(L.cols<=4&&!WIDE)gx=Math.max(8,Math.min(gp*2.4,Math.floor((RW-30-L.cols*cw)/(L.cols-1))));g.style.setProperty('--cw',cw+'px');g.style.setProperty('--gp',gp+'px');g.style.setProperty('--gx',gx+'px');g.style.height=gridH+'px';
   cells.forEach(c=>{const b=document.createElement('button');b.className='esc';b.setAttribute('aria-label','Kapalı kart');b.style.setProperty('--d',(c.i%L.cols+Math.floor(c.i/L.cols))*35+'ms');
@@ -2087,7 +2087,7 @@ function netMsg(d,m){
     if(!fromHost||!Array.isArray(d.seats)||d.seats.length<2||d.seats.length>7||(d.game==='bl'&&d.seats.length<3)||!GAMEMAX[d.game])return;
     const sp=netSelfPeer();if(!d.seats.some(s=>s&&s.p===sp))return;
     const seats=d.seats.map(s=>({p:s.p?String(s.p):null,n:cleanName(s.n)||'?'}));
-    NETL.hostCache=m.peer;NETL.cur={sid:String(d.sid),game:d.game,seed:d.seed>>>0,start:Math.max(0,d.start|0)%seats.length,opt:Math.max(1,Math.min(3,d.opt|0||1)),seats};NETL.log={};NETL.waiters=[];NETL.phase='game';
+    NETL.hostCache=m.peer;NETL.cur={re:d.re?1:0,sid:String(d.sid),game:d.game,seed:d.seed>>>0,start:Math.max(0,d.start|0)%seats.length,opt:Math.max(1,Math.min(3,d.opt|0||1)),seats};NETL.log={};NETL.waiters=[];NETL.phase='game';
     launch(d.game,null,true);return}
   if(!cur||d.sid!==cur.sid)return;
   if(d.t==='mv'){
@@ -2125,8 +2125,8 @@ function netBuild(game,prev,opt){
   keep.forEach(s=>seats.push({p:s.p,n:uniq(s.n)}));
   const pool=shuffle(NAMES.filter(n=>!used.has(n.toLowerCase())));
   while(seats.length<max)seats.push({p:null,n:pool.pop()});
-  return{sid:netRand().toString(36),game,opt:prev?prev.opt:opt,seed:netRand(),start:prev?(prev.start+1)%max:Math.floor(Math.random()*max),seats}}
-function netBroadcastGo(cfg){NETL.tr.send({t:'go',sid:cfg.sid,game:cfg.game,seed:cfg.seed,start:cfg.start,opt:cfg.opt,pace:PACE,seats:cfg.seats})}
+  return{sid:netRand().toString(36),game,opt:prev?prev.opt:opt,re:prev?1:0,seed:netRand(),start:prev?(prev.start+1)%max:Math.floor(Math.random()*max),seats}}
+function netBroadcastGo(cfg){NETL.tr.send({t:'go',sid:cfg.sid,game:cfg.game,seed:cfg.seed,start:cfg.start,opt:cfg.opt,pace:PACE,re:cfg.re?1:0,seats:cfg.seats})}
 function netStartHost(game,opt){
   const cfg=netBuild(game,null,opt);NETL.cur=cfg;NETL.log={};NETL.waiters=[];NETL.phase='game';NETL.hostCache=netSelfPeer();
   netBroadcastGo(cfg);launch(game,opt,true)}
@@ -2321,7 +2321,7 @@ async function launch(mode,opt,keep){
   cancelAll();$('#modal').hidden=true;lastMode=mode;
   document.body.classList.add('ingame');$('#menu').hidden=true;$('#table').hidden=false;enterWagon(mode);$('#stage').classList.toggle('noidle',mode==='ok');
   $('#hand').innerHTML='';$('#center').innerHTML='';$('#seats').innerHTML='';say('');
-  if(!keep){if(NETL.phase==='game')NETL.phase='party';NETL.cur=null;sesReset()}fitLock=1;const my=SID;let r='again';
+  if(!keep){if(NETL.phase==='game')NETL.phase='party';NETL.cur=null;NETL.lastGame=null;sesReset()}else if(NETL.cur){if(!NETL.cur.re&&NETL.lastGame!==mode)sesReset();NETL.lastGame=mode}fitLock=1;const my=SID;let r='again';
   try{while(r==='again'){r=await({kk:()=>kk(),ok:()=>okey(),bl:()=>bluff(opt||blN),vm:()=>varmi(opt||vmN),es:()=>esles(opt||esN),rd:()=>rdort()}[mode])()}}
   catch(e){if(!(e instanceof Cancel)){console.error(e);window.__ERR=e.message+' '+e.stack;say('Bir hata oluştu: '+e.message);return}}
   if(my===SID&&r==='menu')showMenu()}
