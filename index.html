@@ -723,9 +723,9 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 .lbn{font-style:normal;background:#ffd23f;color:#3a1a2a;border-radius:9px;padding:0 6px;margin-left:5px;font-size:12px}
 .crown{color:var(--sari);font-style:normal;margin-right:3px}
 #crew{display:none}
-#crew.on{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:2px 10px;margin:2px 0 0;position:relative;z-index:4}
-.cm{width:62px;text-align:center}.cm .cc{width:62px;height:56px;overflow:hidden}.cm .cc svg{width:100%;height:auto;display:block}
-.cm.me{width:74px}.cm.me .cc{width:74px;height:66px;filter:drop-shadow(0 3px 5px rgba(180,60,120,.4))}
+#crew.on{display:flex;flex-wrap:wrap;--n:4;justify-content:center;align-items:flex-end;gap:2px 10px;margin:2px 0 0;position:relative;z-index:4}
+.cm{width:min(62px,calc((100% - 10px*(var(--n) - 1))/var(--n)));text-align:center}.cm .cc{width:100%;aspect-ratio:62/56;overflow:hidden}.cm .cc svg{width:100%;height:auto;display:block}
+.cm.me{width:min(74px,calc((100% - 10px*(var(--n) - 1))/var(--n)*1.2)))}.cm.me .cc{filter:drop-shadow(0 3px 5px rgba(180,60,120,.4))}
 .cn{background:#fff;border:2px solid #f2a7c8;color:#7a2d57;border-radius:10px;font:700 11px var(--disp);padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-2px}
 .cm.me .cn{border-color:#ff7fa8}
 .chint{flex-basis:100%;text-align:center;font:700 11px var(--body);color:#5a2a6a}
@@ -1219,14 +1219,29 @@ const SHIELD_P='<path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/>';
 let chest=[];
 async function kk(){
   SPEED=1;
-  const cols=shuffle(COLORS),nm=sesNames(6,[myName()]);
-  const P=[{name:myName(),human:true},...nm.map(n=>({name:n,human:false}))];
-  const C=setupTable(P.map(p=>p.name),{shape:'round',mb:30,acc:'kupe',D:304,over:62,rx:32,sw:64});
+  const cfg=(NETL.cur&&NETL.cur.game==='kk')?NETL.cur:null,isHost=!cfg||NETL.host,selfP=cfg?netSelfPeer():null;
+  const seatsG=cfg?cfg.seats.map(x=>({name:x.n,kind:x.p?'human':'bot',peer:x.p||null,local:!!x.p&&x.p===selfP})):null;
+  if(cfg)cfg.live=seatsG;
+  const mi=cfg?Math.max(0,seatsG.findIndex(x=>x.local)):0,off=cfg?cfg.start:0;
+  const cols=cfg?shuffleSeed(COLORS,cfg.seed):shuffle(COLORS),nm=cfg?[]:sesNames(6,[myName()]);
+  const P=cfg?seatsG.map((s,g)=>({name:s.name,human:g===mi,seat:s})):[{name:myName(),human:true},...nm.map(n=>({name:n,human:false}))];
+  const isBotP=p=>p.seat?p.seat.kind==='bot':!p.human;
+  const C=setupTable(Array.from({length:7},(_,k)=>P[(mi+k)%7].name),{shape:'round',mb:30,acc:'kupe',D:304,over:62,rx:32,sw:64,humans:cfg?[1,2,3,4,5,6].filter(k=>P[(mi+k)%7].seat.kind==='human'):[]});
   window.HANDSC=.78;
-  P.forEach((p,i)=>{p.i=i;p.color=cols[i];p.alive=true;p.hand=[];p.masum=false;p.revealed=false;p.susp=Array(7).fill(0);p.said={};p.cat=C[i]});
-  const me=P[0],katil=P.find(p=>p.color==='murdum');
-  let deck=shuffle(mkDeck()),disc=[],shield=0,round=1,winner=null,reason='',graves=[],revealHTML='',chestOpen=false,chestEl=null;
-  const draw=()=>{if(!deck.length){deck=shuffle(disc);disc=[]}return deck.pop()};
+  P.forEach((p,i)=>{p.i=i;p.color=cols[i];p.alive=true;p.hand=[];p.masum=false;p.revealed=false;p.susp=Array(7).fill(0);p.said={};p.cat=C[(i-mi+7)%7];if(p.seat)p.seat.cat=p.cat});
+  const me=P[mi],katil=P.find(p=>p.color==='murdum');
+  let seq=0,rsh=0;window.__kkMoves=[];window.__kkRes=null;
+  async function netChoice(p,think,ui,botFn,enc,dec){
+    if(p.human){const v=await ui();if(cfg)netSend(seq,enc(v));seq++;window.__kkMoves.push(JSON.stringify(enc(v)));return v}
+    if(think)await sleep(think);
+    for(;;){
+      if(isBotP(p)&&isHost){const v=botFn();if(cfg)netSend(seq,enc(v));seq++;window.__kkMoves.push(JSON.stringify(enc(v)));return v}
+      const got=await NETL.wait(seq,isBotP(p)?NETL.hostPeer():p.seat.peer);if(got._bot)continue;
+      seq++;window.__kkMoves.push(JSON.stringify(got));return dec(got)}}
+  const cardDec=p=>g=>({card:p.hand.find(c=>c.uid===g.u)||p.hand[0],rect:null});
+  const cardEnc=r=>({u:r.card.uid,c:0,r:0});
+  let deck=cfg?shuffleSeed(mkDeck(),(cfg.seed^0x5bd1e995)>>>0):shuffle(mkDeck()),disc=[],shield=0,round=1,winner=null,reason='',graves=[],revealHTML='',chestOpen=false,chestEl=null;
+  const draw=()=>{if(!deck.length){deck=cfg?shuffleSeed(disc,(cfg.seed^Math.imul(++rsh,40503))>>>0):shuffle(disc);disc=[]}return deck.pop()};
   P.forEach(p=>{for(let i=0;i<4;i++)p.hand.push(draw())});
   const alive=()=>P.filter(p=>p.alive);
   const nextAlive=p=>{let i=p.i;do{i=(i+1)%7}while(!P[i].alive);return P[i]};
@@ -1291,8 +1306,9 @@ async function kk(){
     sfx('flip');await sleep(1500);
     const voters=alive().filter(v=>v!==t);let inf=0,ber=0;const votes=[];
     for(const v of voters){let yes;
-      if(v.human){me.cat.active(true);const r=await choose(`İnfaz mı, beraat mi?`,[{id:'i',label:'İnfaz',kind:'d'},{id:'b',label:'Beraat',kind:'g'}]);yes=r==='i';me.cat.active(false)}
-      else{v.cat.active(true);await sleep(450);yes=botVote(v,t,q,m);v.cat.active(false)}
+      if(v.human){me.cat.active(true);}else v.cat.active(true);
+      yes=await netChoice(v,450,async()=>{const r=await choose(`İnfaz mı, beraat mi?`,[{id:'i',label:'İnfaz',kind:'d'},{id:'b',label:'Beraat',kind:'g'}]);return r==='i'},()=>botVote(v,t,q,m),y=>({u:y?1:0,c:0,r:0}),g=>!!g.u);
+      v.cat.active(false)
       votes.push([v,yes]);yes?inf++:ber++;
       v.cat.mood(yes?'angry':'yes',800);v.cat.say(yes?'İnfaz!':'Beraat',{kind:yes?'alert':'yes',ms:1100});sfx(yes?'bad':'pop');
       const el=$(yes?'#vi':'#vb');if(el){el.textContent=yes?inf:ber;el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick')}
@@ -1320,7 +1336,7 @@ async function kk(){
     await banner(`Tur ${round}`,{icon:'sun',bg:'var(--sari)',fg:'#3a1a2a',sub:'Gündüz · kartlar sırayla dolaşıyor',ms:1100});
     chatter();
     /* gündüz: sıcak patates, kartlar sırayla dolaşır */
-    const startP=alive().includes(P[(round-1)%7])?P[(round-1)%7]:nextAlive(P[(round-1)%7]);
+    const sp0=P[(off+round-1)%7],startP=alive().includes(sp0)?sp0:nextAlive(sp0);
     const chain=[startP];{let q=nextAlive(startP);while(q!==startP){chain.push(q);q=nextAlive(q)}}
     const chestMap=new Map();
     const deckEl=()=>$('#deckobj');
@@ -1328,15 +1344,13 @@ async function kk(){
     async function drawFor(p){const c=draw();p.hand.push(c);
       await fly(p.human?c.img:ART.back,deckEl(),p.human?$('#hand'):p.cat.wrap,{w:46,dur:480});
       if(p.human)showHand(me.hand,{fresh:new Set([c.uid])});upd();return c}
-    async function putChest(p){let r;
-      if(p.human){r=await pick('',p.hand,()=>true,null,null,chestEl)}
-      else r={card:botChest(p),rect:null};
+    async function putChest(p){
+      const r=await netChoice(p,0,()=>pick('',p.hand,()=>true,null,null,chestEl),()=>({card:botChest(p),rect:null}),cardEnc,cardDec(p));
       p.hand=p.hand.filter(c=>c!==r.card);if(p.human)showHand(me.hand);
       await fly(ART.back,p.human?r.rect:p.cat.wrap,chestEl,{w:42,dur:480,lift:-60});
       chestMap.set(p,r.card);if(chestEl){chestEl.classList.remove('bump');void chestEl.offsetWidth;chestEl.classList.add('bump');sfx('thud')}}
-    async function passOn(p){let r;const to=nextAlive(p);
-      if(p.human)r=await pick('',p.hand,()=>true,null,null,to.cat.wrap);
-      else r={card:botPass(p),rect:null};
+    async function passOn(p){const to=nextAlive(p);
+      const r=await netChoice(p,0,()=>pick('',p.hand,()=>true,null,null,to.cat.wrap),()=>({card:botPass(p),rect:null}),cardEnc,cardDec(p));
       p.hand=p.hand.filter(c=>c!==r.card);if(p.human)showHand(me.hand);
       p.cat.mood('yes',500);p.cat.look(to.cat.wrap);
       await fly(to.human?r.card.img:ART.back,p.human?r.rect:p.cat.wrap,to.human?$('#hand'):to.cat.wrap,{w:46,dur:520});
@@ -1348,8 +1362,8 @@ async function kk(){
       if(round===1){
         if(!pot)await drawFor(p);
         else{let swap;
-          if(p.human){me.cat.active(true);const r=await choose('Kartı tut mu?',[{id:'k',label:'Kartı tut',kind:'p',thumb:pot.img},{id:'s',label:'Bırak, desteden çek',kind:'n'}]);swap=r==='s'}
-          else{p.cat.mood('think',700);await sleep(500);swap=botSwap(p,pot)}
+          if(p.human)me.cat.active(true);else p.cat.mood('think',700);
+          swap=await netChoice(p,500,async()=>{const r=await choose('Kartı tut mu?',[{id:'k',label:'Kartı tut',kind:'p',thumb:pot.img},{id:'s',label:'Bırak, desteden çek',kind:'n'}]);return r==='s'},()=>botSwap(p,pot),v=>({u:v?1:0,c:0,r:0}),g=>!!g.u)
           if(swap){p.hand=p.hand.filter(c=>c!==pot);disc.push(pot);if(p.human)showHand(me.hand);
             await fly(pot.img,p.human?$('#hand'):p.cat.wrap,deckEl(),{w:46,dur:420});await drawFor(p)}}
       }else{await drawFor(p);await putChest(p)}
@@ -1360,7 +1374,7 @@ async function kk(){
     if(round===1){waitMsg();for(const p of chain){actOnly(p.cat);await putChest(p)}actOnly(null)}
     else waitMsg();
     const ch=chestMap;
-    chest=shuffle(chain.map(p=>ch.get(p)));
+    {const arr=chain.map(p=>ch.get(p));chest=cfg?shuffleSeed(arr,(cfg.seed^Math.imul(round,2246822519))>>>0):shuffle(arr)}
     /* gece */
     setTod('night');sleepAll(alive().map(p=>p.cat));
     await banner('Gece',{icon:'moon',bg:'var(--ink3)',fg:'var(--cream)',sub:'Sandık açılıyor…',ms:1200,sfx:'night'});
@@ -1390,16 +1404,19 @@ async function kk(){
     /* sorgu */
     let queried=false;
     if(round>=2){
-      const order=[];for(let k=0;k<7;k++){const q=P[(round-1+k)%7];if(q.alive)order.push(q)}
+      const order=[];for(let k=0;k<7;k++){const q=P[(off+round-1+k)%7];if(q.alive)order.push(q)}
       for(const q of order){
         const mc=cnt(q.hand,'murdum'),oc=cnt(q.hand,q.color);if(q===katil||mc<2||oc<2)continue;
         const targets=alive().filter(t=>t!==q&&!t.masum);if(!targets.length)continue;
         let target=null;
-        if(q.human){me.cat.active(true);
+        if(q.human)me.cat.active(true);
+        target=await netChoice(q,0,async()=>{
           const r=await choose(`Sorgu hakkın var! ${dotc('murdum')}${mc} ${dotc(me.color)}${oc}`,[{id:'y',label:'Sorguya çek',kind:'p',pulse:true},{id:'n',label:'Pas'}]);
-          if(r==='y'){const objs={};targets.forEach(t=>objs[t.i]=t.cat.wrap);const t=await chooseObj('Kimi sorgula? Kediye dokun',objs);target=P[+t]}
-          me.cat.active(false)}
-        else{const rk=targets.map(t=>({t,s:q.susp[t.i]+Math.random()*.6})).sort((a,b)=>b.s-a.s)[0];if(Math.random()<Math.min(.85,Math.max(.2,.3+.25*rk.s)))target=rk.t}
+          if(r==='y'){const objs={};targets.forEach(t=>objs[t.i]=t.cat.wrap);const t=await chooseObj('Kimi sorgula? Kediye dokun',objs);return P[+t]}
+          return null},
+          ()=>{const rk=targets.map(t=>({t,s:q.susp[t.i]+Math.random()*.6})).sort((a,b)=>b.s-a.s)[0];return Math.random()<Math.min(.85,Math.max(.2,.3+.25*rk.s))?rk.t:null},
+          t=>({u:t?t.i:-1,c:0,r:0}),g=>(g.u>=0&&targets.find(t=>t.i===g.u))||null);
+        if(q.human)me.cat.active(false)
         if(target){queried=true;await doQuery(q,target);break}}
       if(winner)break}
     round++;
@@ -1412,7 +1429,9 @@ async function kk(){
   if(iWon){sfx('win');FX.confetti()}else sfx('bad');
   await banner(villageWon?'Köy kazandı!':'Katil kazandı!',{icon:villageWon?'paw':'skull',bg:villageWon?'var(--yesil)':'var(--murdum)',fg:villageWon?'#1f3410':'#fff',sub:`Katil: ${katil.name}`,ms:1600});
   const roles=`<div class="roles">${P.map(p=>`<div class="${p===katil?'kat':''}">${dotc(p.color)}<span>${p.name}: ${CN[p.color]}${p===katil?' · Katil':''}</span></div>`).join('')}</div>`;
-  return await showResult({title:villageWon?'Köy kazandı':'Katil kazandı',sub:`${reason} ${iWon?'Kazanan taraftasın!':'Bu sefer kaybeden taraftasın.'}`,html:rcat(katil.cat)+roles+sesTable(P.map(p=>p.name)),buttons:[{id:'again',label:'Tekrar oyna',kind:'p'},{id:'menu',label:'Menü',kind:'n',auto:true}]})}
+  window.__kkRes={w:winner,n:seq,sid:cfg?cfg.sid:null};const onlineGuest=cfg&&!isHost;
+  const res=await showResult({title:villageWon?'Köy kazandı':'Katil kazandı',sub:`${reason} ${iWon?'Kazanan taraftasın!':'Bu sefer kaybeden taraftasın.'}`,html:rcat(katil.cat)+roles+sesTable(P.map(p=>p.name))+(onlineGuest?'<div class="cinfo" style="margin-top:6px">Kurucu yeni oyunu başlatınca devam eder</div>':''),buttons:(onlineGuest?[]:[{id:'again',label:'Tekrar oyna',kind:'p'}]).concat([{id:'menu',label:'Menü',kind:'n',auto:true}])});
+  if(res==='again'&&cfg)netNext();return res}
 
 /* ---------- Renk Okeyi ---------- */
 function winType(h4){const c=COLORS.map(x=>cnt(h4,x));if(c.every(v=>v>0))return'rainbow';if(Math.max(...c)>=5)return'mono';return null}
@@ -1420,24 +1439,31 @@ function best4(h5){let r=null;for(let i=0;i<h5.length;i++){const rest=h5.filter(
 function val(h4){const c=COLORS.map(x=>cnt(h4,x));const mx=Math.max(...c),d=c.filter(v=>v>0).length;return Math.max(mx/5,Math.pow(d/7,2.2))+mx*.01+d*.005}
 async function okey(){
   SPEED=1;const nm=shuffle(NAMES).slice(0,3);
-  const P=[{name:myName(),human:true},...nm.map(n=>({name:n,human:false}))];
-  const C=setupTable(P.map(p=>p.name),{shape:'sq',mb:30,acc:'salon',dy:38});
-  P.forEach((p,i)=>{p.i=i;p.score=0;p.cat=C[i];p.taken={}});
-  let start=Math.floor(Math.random()*4),handNo=0;
+  const cfg=(NETL.cur&&NETL.cur.game==='ok')?NETL.cur:null,isHost=!cfg||NETL.host,selfP=cfg?netSelfPeer():null;
+  const seatsG=cfg?cfg.seats.map(x=>({name:x.n,kind:x.p?'human':'bot',peer:x.p||null,local:!!x.p&&x.p===selfP})):null;
+  if(cfg)cfg.live=seatsG;
+  const mi=cfg?Math.max(0,seatsG.findIndex(x=>x.local)):0;
+  const P=cfg?[0,1,2,3].map(k=>{const s=seatsG[(mi+k)%4];return{name:s.name,human:k===0,seat:s}}):[{name:myName(),human:true},...nm.map(n=>({name:n,human:false}))];
+  const isBotP=p=>p.seat?p.seat.kind==='bot':!p.human;
+  const C=setupTable(P.map(p=>p.name),{shape:'sq',mb:30,acc:'salon',dy:38,humans:cfg?[1,2,3].filter(k=>P[k].seat.kind==='human'):[]});
+  P.forEach((p,i)=>{p.i=i;p.score=cfg?sesPts(p.name):0;p.cat=C[i];p.taken={};if(p.seat)p.seat.cat=C[i]});
+  let start=cfg?((cfg.start-mi+4)%4):Math.floor(Math.random()*4),handNo=0,seq=0;window.__okMoves=[];window.__okRes=null;
   for(;;){
     handNo++;setTod('day');
-    let deck=shuffle(mkDeck());const pile=[];
-    P.forEach(p=>{p.hand=[];for(let i=0;i<4;i++)p.hand.push(deck.pop());p.taken={}});
+    let deck=cfg?shuffleSeed(mkDeck(),(cfg.seed^Math.imul(handNo,2654435761))>>>0):shuffle(mkDeck());const pile=[];let rsh=0;
+    P.forEach(p=>{p.hand=[];p.taken={}});
+    const dealOrder=cfg?[0,1,2,3].map(g=>P[(g-mi+4)%4]):P;
+    dealOrder.forEach(p=>{for(let i=0;i<4;i++)p.hand.push(deck.pop())});
     P[start].hand.push(deck.pop());
     let cur=start,over=false,result=null,reveal='';
     
-    function refill(){if(deck.length)return true;const keep=pile.pop();deck=shuffle(pile.splice(0));if(keep)pile.push(keep);setPile();return deck.length>0}
+    function refill(){if(deck.length)return true;const keep=pile.pop();deck=cfg?shuffleSeed(pile.splice(0),(cfg.seed^Math.imul(++rsh,40503))>>>0):shuffle(pile.splice(0));if(keep)pile.push(keep);setPile();return deck.length>0}
     function setPile(){const e=$('#opile');if(e)e.innerHTML=pile.length?cimg(pile[pile.length-1]):'<div class="cimg ph"></div>'}
     function upd(){P.forEach(p=>{p.cat.sub(`<b style="color:var(--sari)">${ic('star','mini')}${p.score}</b>${p.human?'':' '+mcount(p.hand.length)}`);p.cat.slot('')})}
     function paint(){upd();
       setCenter(reveal||`<div class="okrow"><div class="obj" id="odeck"><div class="deck">${imgs(3)}</div></div><div class="obj" id="opile"></div></div>`);setPile();
       showHand(P[0].hand)}
-    async function finish(p,w){over=true;result={p,type:w.type,keep:w.keep};const pts=w.type==='rainbow'?3:1;p.score+=pts;
+    async function finish(p,w){over=true;result={p,type:w.type,keep:w.keep};const pts=w.type==='rainbow'?3:1;p.score+=pts;if(cfg)sesAdd(p.name,pts);
       p.cat.mood('happy',1600);sfx('win');
       reveal=`<div class="cinfo">${chip(p.name+' elini açtı')}</div><div class="revealrow lg">${w.keep.map((k,i)=>`<div class="rc gy" style="--i:${i}">${cimg(k)}</div>`).join('')}</div><div class="cinfo">${COLORS.map(c=>[c,cnt(w.keep,c)]).filter(x=>x[1]>0).map(([c,n])=>chip(dotc(c)+n)).join('')}</div>`;
       paint();P.forEach(q=>{if(q!==p)q.cat.mood(p.human?'sad':'angry',1200)});
@@ -1449,14 +1475,23 @@ async function okey(){
     while(!over){
       const canWin=turnNo>=4;
       const p=P[cur];actOnly(p.cat);paint();
+      window.__okM='top';window.__okT=[cur,p.name,isBotP(p),p.human,isHost,seq,p.hand.length,turnNo];
+      const botTurn=()=>isBotP(p)&&isHost,fromP=()=>isBotP(p)?NETL.hostPeer():p.seat.peer;
       if(p.hand.length===4){
         const op=pile.slice(-1)[0];
         let takeOpen=false;
         if(p.human){const objs={d:$('#odeck')};if(op)objs.o=$('#opile');
-          takeOpen=(await chooseObj(op?'Desteden mi, açık karttan mı?':'Desteden çek',objs))==='o'}
+          takeOpen=(await chooseObj(op?'Desteden mi, açık karttan mı?':'Desteden çek',objs))==='o';if(cfg)netSend(seq,{u:0,c:takeOpen?1:0,r:0});seq++}
         else{p.cat.mood('think',900);await sleep(900);
-          if(op){const gain=Math.max(...[0,1,2,3].map(i=>val(p.hand.filter((_,j)=>j!==i).concat(op))),val(p.hand))-val(p.hand);
-            const wt=best4(p.hand.concat(op));takeOpen=!!wt||gain>.1+Math.random()*.05}}
+          for(;;){
+            if(botTurn()){
+              if(op){const gain=Math.max(...[0,1,2,3].map(i=>val(p.hand.filter((_,j)=>j!==i).concat(op))),val(p.hand))-val(p.hand);
+                const wt=best4(p.hand.concat(op));takeOpen=!!wt||gain>.1+Math.random()*.05}
+              if(cfg)netSend(seq,{u:0,c:takeOpen?1:0,r:0});break}
+            const got=await NETL.wait(seq,fromP());if(got._bot)continue;
+            takeOpen=!!got.c&&!!op;break}
+          seq++}
+        window.__okM='took';
         if(takeOpen){const src=$('#opile');pile.pop();p.hand.push(op);op.cols.forEach(c=>p.taken[c]=(p.taken[c]||0)+1);
           await fly(op.img,src,p.human?$('#hand'):p.cat.wrap,{w:60,dur:560});setPile();}
         else{if(!refill()){over=true;break}
@@ -1467,21 +1502,32 @@ async function okey(){
         while(!done){
           const w0=canWin?best4(p.hand):null;
           const r=await pick(w0?'Bitir ya da at':'Hangi kartı atacaksın?',p.hand,()=>true,w0?[{id:'win',label:'Bitir · Eli aç',kind:'g',pulse:true}]:[]);
-          if(r.btn==='win'){const w=canWin?best4(p.hand):null;if(w){p.hand=w.keep;await finish(p,w);done=true}}
-          else{p.hand=p.hand.filter(c=>c!==r.card);showHand(p.hand);await fly(r.card.img,r.rect||$('#hand'),$('#opile'),{w:60,dur:500});pile.push(r.card);setPile();upd();done=true}}}
+          if(r.btn==='win'){const w=canWin?best4(p.hand):null;if(w){if(cfg)netSend(seq,{u:-1,c:0,r:1});seq++;window.__okMoves.push('W');p.hand=w.keep;await finish(p,w);done=true}}
+          else{if(cfg)netSend(seq,{u:r.card.uid,c:0,r:0});seq++;window.__okMoves.push(r.card.uid);p.hand=p.hand.filter(c=>c!==r.card);showHand(p.hand);await fly(r.card.img,r.rect||$('#hand'),$('#opile'),{w:60,dur:500});pile.push(r.card);setPile();upd();done=true}}}
       else{
-        const w=canWin?best4(p.hand):null;
-        if(w){await sleep(600);p.hand=w.keep;await finish(p,w)}
-        else{let bi=0,bv=-9;const nx=P[(cur+1)%4];
-          p.hand.forEach((_,i)=>{const rest=p.hand.filter((__,j)=>j!==i);let v=val(rest);
-            p.hand[i].cols.forEach(c=>{v-=.035*(nx.taken[c]||0)});v+=Math.random()*.03;if(v>bv){bv=v;bi=i}});
-          const d=p.hand.splice(bi,1)[0];await fly(d.img,p.cat.wrap,$('#opile'),{w:60,dur:460});pile.push(d);setPile();upd();await sleep(300)}}
-      turnNo++;if(!over)cur=(cur+1)%4}
+        const w=canWin?best4(p.hand):null;let act=null;
+        for(;;){
+          if(botTurn()){
+            if(w)act={win:1};
+            else{let bi=0,bv=-9;const nx=P[(cur+1)%4];
+              p.hand.forEach((_,i)=>{const rest=p.hand.filter((__,j)=>j!==i);let v=val(rest);
+                p.hand[i].cols.forEach(c=>{v-=.035*(nx.taken[c]||0)});v+=Math.random()*.03;if(v>bv){bv=v;bi=i}});
+              act={u:p.hand[bi].uid}}
+            if(cfg)netSend(seq,act.win?{u:-1,c:0,r:1}:{u:act.u,c:0,r:0});break}
+          const got=await NETL.wait(seq,fromP());if(got._bot)continue;
+          if(got.r&&w){act={win:1};break}
+          const k=p.hand.find(x=>x.uid===got.u);act={u:(k||p.hand[0]).uid};break}
+        window.__okM='disc';seq++;window.__okMoves.push(act.win?'W':act.u);
+        if(act.win){await sleep(600);p.hand=w.keep;await finish(p,w)}
+        else{const d=p.hand.splice(p.hand.findIndex(x=>x.uid===act.u),1)[0];await fly(d.img,p.cat.wrap,$('#opile'),{w:60,dur:460});pile.push(d);setPile();upd();await sleep(300)}}
+      window.__okM='end';turnNo++;if(!over)cur=(cur+1)%4}
     actOnly(null);
     if(!result){await banner('Berabere',{icon:'clock',bg:'var(--ink3)',fg:'var(--cream)',sub:'Deste bitti',ms:1200})}
     const tbl=`<div class="score">${P.map(p=>`<div>${p.name}<b>${p.score}</b></div>`).join('')}</div>`;
+    window.__okRes={w:result?result.p.name:null,n:seq,sid:cfg?cfg.sid:null};const onlineGuest=cfg&&!isHost;
     const r=await showResult({title:result?(result.p.human?'Eli sen aldın!':`${result.p.name} kazandı`):'Berabere',sub:result?`${result.p.name} ${result.type==='rainbow'?'Gökkuşağı (3 puan)':'Monokrom (1 puan)'} ile bitirdi.`:'El berabere bitti.',
-      html:(result?`<div class="revealrow">${result.keep.map(k=>cimg(k)).join('')}</div>`:'')+tbl,buttons:[{id:'n',label:'Yeni el',kind:'p',auto:true},{id:'menu',label:'Menü',kind:'n'}]});
+      html:(result?`<div class="revealrow">${result.keep.map(k=>cimg(k)).join('')}</div>`:'')+tbl+(onlineGuest?'<div class="cinfo" style="margin-top:6px">Kurucu yeni eli başlatınca devam eder</div>':''),buttons:(onlineGuest?[]:[{id:'n',label:'Yeni el',kind:'p',auto:!cfg}]).concat([{id:'menu',label:'Menü',kind:'n'}])});
+    if(cfg){if(r==='n'){netNext();return'again'}return'menu'}
     if(r==='menu')return'menu';
     start=(start+1)%4;if(AUTO()&&handNo>=3)return'menu';
   }}
@@ -1490,14 +1536,25 @@ async function okey(){
 function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+.3275911*x);return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x))}
 const Phi=z=>.5*(1+erf(z/Math.SQRT2));
 async function bluff(n){
-  SPEED=1;const nm=sesNames(n-1,[myName()]);
-  const P=[{name:myName(),human:true},...nm.map(x=>({name:x,human:false}))];
-  const C=setupTable(P.map(p=>p.name),{shape:'round',mb:30,acc:'loko',D:326,over:60,rx:32,sw:64});
-  let deck=shuffle(mkDeck());
+  SPEED=1;
+  const cfg=(NETL.cur&&NETL.cur.game==='bl')?NETL.cur:null,isHost=!cfg||NETL.host,selfP=cfg?netSelfPeer():null;
+  if(cfg)n=cfg.seats.length;
+  const seatsG=cfg?cfg.seats.map(x=>({name:x.n,kind:x.p?'human':'bot',peer:x.p||null,local:!!x.p&&x.p===selfP})):null;
+  if(cfg)cfg.live=seatsG;
+  const mi=cfg?Math.max(0,seatsG.findIndex(x=>x.local)):0;
+  const nm=cfg?[]:sesNames(n-1,[myName()]);
+  const P=cfg?Array.from({length:n},(_,k)=>{const s=seatsG[(mi+k)%n];return{name:s.name,human:k===0,seat:s}}):[{name:myName(),human:true},...nm.map(x=>({name:x,human:false}))];
+  const isBotP=p=>p.seat?p.seat.kind==='bot':!p.human,gidx=p=>(p.i+mi)%n;
+  const C=setupTable(P.map(p=>p.name),{shape:'round',mb:30,acc:'loko',D:326,over:60,rx:32,sw:64,humans:cfg?P.map((p,k)=>k).filter(k=>k>0&&P[k].seat.kind==='human'):[]});
+  if(P[0].seat)P.forEach((p,i)=>{p.seat.cat=C[i]});
+  const rseed=r=>cfg?((cfg.seed^Math.imul(r,2654435761))>>>0):0;
+  let seq=0;window.__blMoves=[];window.__blRes=null;
+  const enc=a=>({u:a.type==='raise'?0:a.type==='pass'?1:2,c:a.n|0,r:0});
+  let deck=cfg?shuffleSeed(mkDeck(),rseed(0)):shuffle(mkDeck());
   P.forEach((p,i)=>{p.i=i;p.alive=true;p.hand=[];p.pas=0;p.pool=[];p.known={};p.risk=.25+Math.random()*.15;p.cat=C[i]});
   const me=P[0],alive=()=>P.filter(p=>p.alive);
   const nextA=i=>{let j=i;do{j=(j+1)%n}while(!P[j].alive);return j};
-  let round=0,starter=0,active,bid,bidder,cur,cnts={},orbHide=false;
+  let round=0,starter=cfg?((cfg.start-mi+n)%n):0,active,bid,bidder,cur,cnts={},orbHide=false;
   function upd(){P.forEach(p=>{const c=p.cat;
       c.sub(sesStar(p.name)+' '+(!p.alive?'Elendi':`${p.pool.length?'Lanet '+p.pool.map(dotc).join(''):'Güvende'}${p.pas?` · Pas ${p.pas}/3`:''}`));
       c.slot((p.alive&&cnts[p.i]!=null?`<span class="tagc">${cnts[p.i]} kare</span>`:p.alive&&bidder===p&&bid?`<span class="tagc">Teklif ${bid}</span>`:'')+(p.human&&p.alive&&p.hand.length&&!orbHide?`<span class="tagc own">${dotc(active)} <b>${cnt(p.hand,active)}</b></span>`:''))})}
@@ -1529,25 +1586,36 @@ async function bluff(n){
     if(canCall&&pT(bid)<.7)return{type:'call'};
     if(canPas&&Math.random()<.5)return{type:'pass'};
     return(canCall&&Math.random()<.5)||!canPas?{type:'raise',n:k}:{type:'pass'}}
-  active=rnd(COLORS);bid=0;bidder=null;cur=0;paint();
+  active=COLORS[0];bid=0;bidder=null;cur=0;paint();
   await banner('Renk Blöfü',{icon:'paw',bg:'var(--turuncu)',fg:'#fff',sub:`${n} oyuncu · herkesin 4 kartı var`,ms:1300});
   while(alive().length>1){
-    round++;active=rnd(COLORS);bid=0;bidder=null;cnts={};
+    round++;active=cfg?COLORS[rseed(round*31+7)%COLORS.length]:rnd(COLORS);bid=0;bidder=null;cnts={};
     cur=P[starter].alive?starter:nextA(starter);
-    deck=shuffle(mkDeck());P.forEach(p=>{p.hand=[];p.known={}});$('#hand').innerHTML='';
+    deck=cfg?shuffleSeed(mkDeck(),rseed(round)):shuffle(mkDeck());P.forEach(p=>{p.hand=[];p.known={}});$('#hand').innerHTML='';
     $('#felt').classList.remove('tint');$('#felt').style.borderColor='';orbHide=true;paint();
     await banner(`Tur ${round}`,{icon:'bolt',bg:'var(--turuncu)',fg:'#fff',ms:900});
     await colorReveal(active);orbHide=false;paint();
-    {const al=alive();
-      for(let r=0;r<4;r++){await Promise.all(al.map(p=>{const c=deck.pop();p.hand.push(c);return fly(p.human?c.img:ART.back,$('#felt'),p.human?$('#hand'):p.cat.wrap,{w:34,dur:380,lift:0})}));
+    {const al=alive();const alo=cfg?al.slice().sort((a,b)=>gidx(a)-gidx(b)):al;
+      for(let r=0;r<4;r++){const dl=alo.map(p=>({p,c:deck.pop()}));await Promise.all(dl.map(({p,c})=>{p.hand.push(c);return fly(p.human?c.img:ART.back,$('#felt'),p.human?$('#hand'):p.cat.wrap,{w:34,dur:380,lift:0})}));
         if(me.alive)showHand(me.hand,{badge:k=>{const v=cnt([k],active);return v?v:''},fresh:new Set([me.hand[me.hand.length-1].uid])})}
       sfx('flip')}
     paint();
     let loser=null;
     for(;;){
       const p=P[cur];actOnly(p.cat);paint();let act;
-      if(p.human){showP();const max=8;act=await bidUI(bid+1,max,bid>0&&bidder!==p,3-p.pas);waitMsg()}
-      else{p.cat.mood('think',1000);await sleep(1000);act=botBid(p)}
+      if(p.human){showP();const max=8;act=await bidUI(bid+1,max,bid>0&&bidder!==p,3-p.pas);waitMsg();if(cfg)netSend(seq,enc(act));seq++}
+      else{p.cat.mood('think',1000);await sleep(1000);
+        for(;;){
+          if(isBotP(p)&&isHost){act=botBid(p);if(cfg)netSend(seq,enc(act));break}
+          const got=await NETL.wait(seq,isBotP(p)?NETL.hostPeer():p.seat.peer);if(got._bot)continue;
+          const t=got.u===1?'pass':got.u===2?'call':'raise',nn=got.c|0;
+          if(t==='raise'&&nn>bid&&nn<=8)act={type:'raise',n:nn};
+          else if(t==='pass'&&p.pas<3)act={type:'pass'};
+          else if(t==='call'&&bid>0&&bidder!==p)act={type:'call'};
+          else act=(bid>0&&bidder!==p)?{type:'call'}:{type:'raise',n:bid+1};
+          break}
+        seq++}
+      window.__blMoves.push(act.type+(act.n||''));
       if(!p.human){const S=window.__st=window.__st||{};S[act.type]=(S[act.type]||0)+1}
       if(act.type==='pass'){
         p.pas++;p.cat.mood('no',800);p.cat.say(`Pas! (${p.pas}/3)`,{kind:'no',ms:1400});sfx('pass');upd();
@@ -1584,7 +1652,9 @@ async function bluff(n){
   const w=alive()[0];sesAdd(w.name,1);cur=-1;paint();w.cat.mood('happy',0);
   if(w.human){sfx('win');FX.confetti()}else sfx('bad');
   await banner('Renk Ustası!',{icon:'crown',bg:'var(--sari)',fg:'#3a1a2a',sub:w.name,ms:1600});
-  return await showResult({title:w.human?'Renk Ustası sensin!':`${w.name} Renk Ustası`,sub:w.human?'Son ayakta kalan sensin.':'Son ayakta kalan o oldu.',html:rcat(w.cat)+sesTable(P.map(p=>p.name)),buttons:[{id:'again',label:'Tekrar oyna',kind:'p'},{id:'menu',label:'Menü',kind:'n',auto:true}]})}
+  window.__blRes={w:w.name,n:seq,sid:cfg?cfg.sid:null};const onlineGuest=cfg&&!isHost;
+  const res=await showResult({title:w.human?'Renk Ustası sensin!':`${w.name} Renk Ustası`,sub:w.human?'Son ayakta kalan sensin.':'Son ayakta kalan o oldu.',html:rcat(w.cat)+sesTable(P.map(p=>p.name))+(onlineGuest?'<div class="cinfo" style="margin-top:6px">Kurucu yeni oyunu başlatınca devam eder</div>':''),buttons:(onlineGuest?[]:[{id:'again',label:'Tekrar oyna',kind:'p'}]).concat([{id:'menu',label:'Menü',kind:'n',auto:true}])});
+  if(res==='again'&&cfg)netNext();return res}
 async function deathFx2(p){const c=p.cat;await banner(p.human?'Elendin!':'Ölümcül!',{icon:'skull',bg:'var(--murdum)',fg:'#fff',sub:p.human?'Elendin':`${p.name} elendi`,ms:1200,sfx:'boom'});shake();flash('rgba(106,47,87,.8)');
   burstAt(c.wrap,{n:34,colors:['#fbf1dc','#6a2f57','#e0704f'],speed:7,shapes:['circle','paw']});c.mood('shock',700);await sleep(700)}
 
@@ -1926,7 +1996,7 @@ function mkRoomTransport(rm){let nr=null;const subs=[],psubs=[];
     onMsg(f){subs.push(f)},onPeers(f){psubs.push(f)},
     async leave(){const r=nr;nr=null;subs.length=0;psubs.length=0;if(r)try{await r.leave()}catch(e){}}}}
 const NETL={tr:null,code:'',host:false,cur:null,phase:'off',game:'rd',waiters:[],log:{},ui:null,gone:null};
-const GAMEMAX={rd:2,es:2,vm:2};
+const GAMEMAX={rd:2,es:2,vm:2,ok:4,bl:6,kk:7};
 const ONLINE_READY=['rd'];
 /* PeerJS (WebRTC) taşıması: kurucu yıldız merkezidir; hesap/uygulama gerekmez, her tarayıcıda çalışır */
 function mkPeerTransport(){const PeerC=(window.peerjs&&window.peerjs.Peer)||window.Peer;
@@ -2003,10 +2073,10 @@ function netMsg(d,m){
   if(!d||typeof d!=='object'||m.isMe)return;
   const cur=NETL.cur,fromHost=m.peer===NETL.hostPeer();
   if(d.t==='go'){
-    if(!fromHost||!Array.isArray(d.seats)||d.seats.length<2||d.seats.length>7||!GAMEMAX[d.game])return;
+    if(!fromHost||!Array.isArray(d.seats)||d.seats.length<2||d.seats.length>7||(d.game==='bl'&&d.seats.length<3)||!GAMEMAX[d.game])return;
     const sp=netSelfPeer();if(!d.seats.some(s=>s&&s.p===sp))return;
     const seats=d.seats.map(s=>({p:s.p?String(s.p):null,n:cleanName(s.n)||'?'}));
-    NETL.hostCache=m.peer;NETL.cur={sid:String(d.sid),game:d.game,seed:d.seed>>>0,start:d.start===1?1:0,opt:Math.max(1,Math.min(3,d.opt|0||1)),seats};NETL.log={};NETL.waiters=[];NETL.phase='game';
+    NETL.hostCache=m.peer;NETL.cur={sid:String(d.sid),game:d.game,seed:d.seed>>>0,start:Math.max(0,d.start|0)%seats.length,opt:Math.max(1,Math.min(3,d.opt|0||1)),seats};NETL.log={};NETL.waiters=[];NETL.phase='game';
     launch(d.game,null,true);return}
   if(!cur||d.sid!==cur.sid)return;
   if(d.t==='mv'){
@@ -2038,13 +2108,13 @@ function netPeers(c){
   if(cur.live)cur.seats.forEach((s,i)=>{if(s.p&&!here.has(s.p)&&cur.live[i]&&cur.live[i].kind==='human'){NETL.tr.send({t:'bot',sid:cur.sid,seat:i});netBotify(i)}})}
 /* kurucu: yeni oyun başlat (lobiden ya da tekrar oyna) */
 function netBuild(game,prev,opt){
-  const ps=netPlayers(),max=GAMEMAX[game],used=new Set(),seats=[];
+  const ps=netPlayers(),max=game==='bl'?Math.max(3,Math.min(6,(prev?prev.opt:opt)|0||4)):GAMEMAX[game],used=new Set(),seats=[];
   const uniq=n=>{let x=n,i=2;while(used.has(x.toLowerCase())){x=n.slice(0,10)+i++}used.add(x.toLowerCase());return x};
   const keep=prev?prev.seats.filter(s=>s.p&&ps.some(p=>p.peer===s.p)):ps.slice(0,max).map(p=>({p:p.peer,n:cleanName(p.presence.n)}));
   keep.forEach(s=>seats.push({p:s.p,n:uniq(s.n)}));
   const pool=shuffle(NAMES.filter(n=>!used.has(n.toLowerCase())));
   while(seats.length<max)seats.push({p:null,n:pool.pop()});
-  return{sid:netRand().toString(36),game,opt:prev?prev.opt:opt,seed:netRand(),start:prev?1-prev.start:(Math.random()<.5?0:1),seats}}
+  return{sid:netRand().toString(36),game,opt:prev?prev.opt:opt,seed:netRand(),start:prev?(prev.start+1)%max:Math.floor(Math.random()*max),seats}}
 function netBroadcastGo(cfg){NETL.tr.send({t:'go',sid:cfg.sid,game:cfg.game,seed:cfg.seed,start:cfg.start,opt:cfg.opt,seats:cfg.seats})}
 function netStartHost(game,opt){
   const cfg=netBuild(game,null,opt);NETL.cur=cfg;NETL.log={};NETL.waiters=[];NETL.phase='game';NETL.hostCache=netSelfPeer();
@@ -2082,7 +2152,7 @@ function crewRender(){
   if(!NETL.tr||ps.length<2){el.innerHTML='';el.className='';setTimeout(()=>window.fitMenu&&fitMenu(),20);return}
   const ordered=ps.slice().sort((a,b)=>(a.peer===sp?-1:0)-(b.peer===sp?-1:0)),hostP=ps.find(p=>p.presence.h);
   let oi=0;
-  el.className='on';
+  el.className='on';el.style.setProperty('--n',ordered.length);
   el.innerHTML=ordered.map(p=>{const me=p.peer===sp,L=me?MELOOK:LOOKS[(oi++)%LOOKS.length];
     return `<div class="cm${me?' me':''}"><div class="cc">${catSVG(L,me?'me':'')}</div><div class="cn">${hostP&&hostP.peer===p.peer?'<i class="crown">♛</i>':''}${esc(me?PROFILE.name:cleanName(p.presence.n))}</div></div>`}).join('')
    +`<div class="chint">${NETL.host?'♛ Kurucu sensin · oyunu sen başlatırsın':'♛ '+esc(hostP?cleanName(hostP.presence.n):'?')+' kurucu · oyunu o başlatır'}</div>`;
@@ -2235,7 +2305,7 @@ function enterWagon(mode){const w=WAGONS.find(x=>x.k===mode);lastRoom=w.id;MUSIC
 let lastRoom=null;
 function showMenu(){if(NETL.phase==='game'){NETL.phase='party';NETL.cur=null;NETL.waiters.forEach(w=>clearInterval(w.timer));NETL.waiters=[]}partyRender();document.body.classList.remove("ingame");FIT=1;{const t=$('#table'),s=$('#stage');s.style.transform='';t.style.height=''}MUSIC.play('menu');delete document.documentElement.dataset.w;cancelAll();$('#modal').hidden=true;$('#menu').hidden=false;setTimeout(fitMenu,30);$('#table').hidden=true;window.scrollTo(0,0)}
 async function launch(mode,opt,keep){
-  if(!keep&&(mode==='rd'||mode==='es'||mode==='vm')&&NETL.phase==='party'&&NETL.host&&netPlayers().length>=2){netStartHost(mode,mode==='es'?(opt||esN):mode==='vm'?(opt||vmN):0);return}
+  if(!keep&&(mode==='rd'||mode==='es'||mode==='vm'||mode==='ok'||mode==='bl'||mode==='kk')&&NETL.phase==='party'&&NETL.host&&netPlayers().length>=2){netStartHost(mode,mode==='es'?(opt||esN):mode==='vm'?(opt||vmN):mode==='bl'?(opt||blN):0);return}
   cancelAll();$('#modal').hidden=true;lastMode=mode;
   document.body.classList.add('ingame');$('#menu').hidden=true;$('#table').hidden=false;enterWagon(mode);$('#stage').classList.toggle('noidle',mode==='ok');
   $('#hand').innerHTML='';$('#center').innerHTML='';$('#seats').innerHTML='';say('');
