@@ -1723,7 +1723,7 @@ async function varmi(level){
   function paint(){
     bot.cat.sub(`${sesStar(bot.name)} ${mcount(bot.hand.length)} kart`);me.cat.sub(sesStar(myName()));
     bot.cat.slot('');
-    setCenter(`<div class="cinfo">${chip('Seviye <b>'+level+'</b> kart')}</div>
+    setCenter(`
       <div class="revealrow" id="brow">${bot.slots.map(s=>s.open?`<div class="rc">${cimg(s.k,s.k.uid===lastFound?'found':'')}</div>`:`<div class="rc">${cimg({img:ART.back,cols:['x','x']})}</div>`).join('')}</div>
       ${me.opened.length?`<div class="revealrow">${me.opened.map(k=>`<div class="rc ${k.uid===lastFound?'':'bdim'}">${cimg(k,k.uid===lastFound?'found':'')}</div>`).join('')}</div>`:''}
       <div class="gems" title="Rakipte hangi renk var?">${COLORS.map(c=>`<span class="gem${colSt[c]===-1?' dim':''}" style="--c:${CH[c]}">${colSt[c]===1?ic('check'):colSt[c]===-1?ic('cross'):''}</span>`).join('')}</div>`);
