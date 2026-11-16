@@ -1256,7 +1256,7 @@ async function kk(){
   const nextAlive=p=>{let i=p.i;do{i=(i+1)%7}while(!P[i].alive);return P[i]};
   const draw4=p=>{while(p.hand.length<4){const c=draw();if(!c)break;p.hand.push(c)}};
   function upd(){P.forEach(p=>{const c=p.cat,tag=`${dotc(p.color)}${CN[p.color]}`;
-    c.sub(sesStar(p.name)+' '+(!p.alive?tag:p.revealed?tag:p.human?(me===katil?'Katil':'Köylü'):mcount(p.hand.length)));
+    c.sub(sesStar(p.name)+' '+(!p.alive?tag:p.revealed?tag:p.human?(me===katil?'Katil':'Köylü'):''));
     {const face=ART.pure[p.color];if(p.human)c.tc(face,{me:true,label:me===katil?'Kimliğin · Katil':'Kimliğin'});else c.tc(p.revealed||!p.alive?face:ART.back,{dead:!p.alive})}
     c.slot(p.alive&&p.masum?'<span class="tagc">'+ic('check')+' Masum</span>':'')})}
   function paint(keepReveal){upd();
