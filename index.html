@@ -1480,7 +1480,7 @@ async function okey(){
     
     function refill(){if(deck.length)return true;const keep=pile.pop();deck=cfg?shuffleSeed(pile.splice(0),(cfg.seed^Math.imul(++rsh,40503))>>>0):shuffle(pile.splice(0));if(keep)pile.push(keep);setPile();return deck.length>0}
     function setPile(){const e=$('#opile');if(e)e.innerHTML=pile.length?cimg(pile[pile.length-1]):'<div class="cimg ph"></div>'}
-    function upd(){P.forEach(p=>{p.cat.sub(`<b style="color:var(--sari)">${ic('star','mini')}${p.score}</b>${p.human?'':' '+mcount(p.hand.length)}`);p.cat.slot('')})}
+    function upd(){P.forEach(p=>{p.cat.sub(`<b style="color:var(--sari)">${ic('star','mini')}${p.score}</b>`);p.cat.slot('')})}
     function paint(){upd();
       setCenter(reveal||`<div class="okrow"><div class="obj" id="odeck"><div class="deck">${imgs(3)}</div></div><div class="obj" id="opile"></div></div>`);setPile();
       showHand(P[0].hand)}
