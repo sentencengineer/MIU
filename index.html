@@ -841,7 +841,8 @@ const PACES=[[1.8,'Yavaş'],[1,'Normal'],[.5,'Hızlı'],[.15,'Çok hızlı']];
 try{const v=parseFloat(localStorage.getItem('miu-pace'));if(PACES.some(p=>p[0]===v))PACE=v}catch(e){}
 class Cancel extends Error{}
 const AUTO=()=>window.__AUTO===true;
-const T=ms=>ms*(AUTO()?.01:SPEED*PACE);
+function effPace(){try{return(NETL.tr&&NETL.phase==='game'&&!NETL.host&&NETL.paceH!=null)?NETL.paceH:PACE}catch(e){return PACE}}
+const T=ms=>ms*(AUTO()?.01:SPEED*effPace());
 const FLY=new Set();
 function cancelAll(){SID++;const p=pending;pending=[];p.forEach(r=>r(new Cancel()));FLY.forEach(e=>e.remove());FLY.clear();FX.clear()}
 function ask(setup){return new Promise((res,rej)=>{pending.push(rej);setup(v=>{pending=pending.filter(x=>x!==rej);res(v)})})}
@@ -1371,8 +1372,7 @@ async function kk(){
       if(round===1){
         if(!pot)await drawFor(p);
         else{let swap;
-          if(p.human)me.cat.active(true);else p.cat.mood('think',700);
-          swap=await netChoice(p,500,async()=>{const r=await choose('Kartı tut mu?',[{id:'k',label:'Kartı tut',kind:'p',thumb:pot.img},{id:'s',label:'Bırak, desteden çek',kind:'n'}]);return r==='s'},()=>botSwap(p,pot),v=>({u:v?1:0,c:0,r:0}),g=>!!g.u)
+          swap=false;
           if(swap){p.hand=p.hand.filter(c=>c!==pot);disc.push(pot);if(p.human)showHand(me.hand);
             await fly(pot.img,p.human?$('#hand'):p.cat.wrap,deckEl(),{w:46,dur:420});await drawFor(p)}}
       }else{await drawFor(p);await putChest(p)}
@@ -2081,7 +2081,9 @@ function netSend(n,m){const cur=NETL.cur;if(!cur||!NETL.tr)return;const d={t:'mv
 function netMsg(d,m){
   if(!d||typeof d!=='object'||m.isMe)return;
   const cur=NETL.cur,fromHost=m.peer===NETL.hostPeer();
+  if(d.t==='pace'&&fromHost&&PACES.some(p=>p[0]===d.v)){NETL.paceH=d.v;syncHud();return}
   if(d.t==='go'){
+    if(fromHost&&PACES.some(p=>p[0]===d.pace)){NETL.paceH=d.pace;syncHud()}
     if(!fromHost||!Array.isArray(d.seats)||d.seats.length<2||d.seats.length>7||(d.game==='bl'&&d.seats.length<3)||!GAMEMAX[d.game])return;
     const sp=netSelfPeer();if(!d.seats.some(s=>s&&s.p===sp))return;
     const seats=d.seats.map(s=>({p:s.p?String(s.p):null,n:cleanName(s.n)||'?'}));
@@ -2124,7 +2126,7 @@ function netBuild(game,prev,opt){
   const pool=shuffle(NAMES.filter(n=>!used.has(n.toLowerCase())));
   while(seats.length<max)seats.push({p:null,n:pool.pop()});
   return{sid:netRand().toString(36),game,opt:prev?prev.opt:opt,seed:netRand(),start:prev?(prev.start+1)%max:Math.floor(Math.random()*max),seats}}
-function netBroadcastGo(cfg){NETL.tr.send({t:'go',sid:cfg.sid,game:cfg.game,seed:cfg.seed,start:cfg.start,opt:cfg.opt,seats:cfg.seats})}
+function netBroadcastGo(cfg){NETL.tr.send({t:'go',sid:cfg.sid,game:cfg.game,seed:cfg.seed,start:cfg.start,opt:cfg.opt,pace:PACE,seats:cfg.seats})}
 function netStartHost(game,opt){
   const cfg=netBuild(game,null,opt);NETL.cur=cfg;NETL.log={};NETL.waiters=[];NETL.phase='game';NETL.hostCache=netSelfPeer();
   netBroadcastGo(cfg);launch(game,opt,true)}
@@ -2313,7 +2315,7 @@ function enterWagon(mode){const w=WAGONS.find(x=>x.k===mode);lastRoom=w.id;MUSIC
   $('#decor').innerHTML=(DECOR[w.id]||(()=>''))();
   $('#plq').innerHTML=`<b>${TITLES[mode]}</b>${w.name}`}
 let lastRoom=null;
-function showMenu(){if(NETL.phase==='game'){NETL.phase='party';NETL.cur=null;NETL.waiters.forEach(w=>clearInterval(w.timer));NETL.waiters=[]}partyRender();document.body.classList.remove("ingame");FIT=1;{const t=$('#table'),s=$('#stage');s.style.transform='';t.style.height=''}MUSIC.play('menu');delete document.documentElement.dataset.w;cancelAll();$('#modal').hidden=true;$('#menu').hidden=false;setTimeout(fitMenu,30);$('#table').hidden=true;window.scrollTo(0,0)}
+function showMenu(){if(NETL.phase==='game'){NETL.phase='party';NETL.cur=null;NETL.waiters.forEach(w=>clearInterval(w.timer));NETL.waiters=[]}partyRender();syncHud();document.body.classList.remove("ingame");FIT=1;{const t=$('#table'),s=$('#stage');s.style.transform='';t.style.height=''}MUSIC.play('menu');delete document.documentElement.dataset.w;cancelAll();$('#modal').hidden=true;$('#menu').hidden=false;setTimeout(fitMenu,30);$('#table').hidden=true;window.scrollTo(0,0)}
 async function launch(mode,opt,keep){
   if(!keep&&(mode==='rd'||mode==='es'||mode==='vm'||mode==='ok'||mode==='bl'||mode==='kk')&&NETL.phase==='party'&&NETL.host&&netPlayers().length>=2){netStartHost(mode,mode==='es'?(opt||esN):mode==='vm'?(opt||vmN):mode==='bl'?(opt||blN):0);return}
   cancelAll();$('#modal').hidden=true;lastMode=mode;
@@ -2323,7 +2325,7 @@ async function launch(mode,opt,keep){
   try{while(r==='again'){r=await({kk:()=>kk(),ok:()=>okey(),bl:()=>bluff(opt||blN),vm:()=>varmi(opt||vmN),es:()=>esles(opt||esN),rd:()=>rdort()}[mode])()}}
   catch(e){if(!(e instanceof Cancel)){console.error(e);window.__ERR=e.message+' '+e.stack;say('Bir hata oluştu: '+e.message);return}}
   if(my===SID&&r==='menu')showMenu()}
-function syncHud(){$('#spd').textContent='Hız: '+PACES.find(p=>p[0]===PACE)[1];['#snd','#snd2'].forEach(s=>$(s).innerHTML=ic(MUTE?'mute':'spk'));['#mus','#mus2'].forEach(s=>$(s).innerHTML=ic(NOMUS||MUTE?'nonote':'note'))}
+function syncHud(){{const ep=effPace(),lock=NETL.tr&&NETL.phase==='game'&&!NETL.host;$('#spd').textContent=(lock?'Hız (kurucu): ':'Hız: ')+PACES.find(p=>p[0]===ep)[1]}['#snd','#snd2'].forEach(s=>$(s).innerHTML=ic(MUTE?'mute':'spk'));['#mus','#mus2'].forEach(s=>$(s).innerHTML=ic(NOMUS||MUTE?'nonote':'note'))}
 /* ekrana sığdırma: sahne, görünür yüksekliğe göre tek parça ölçeklenir (kaydırma yok) */
 let fitQ=0,fitLock=1;
 function fitStage(){const t=$('#table'),s=$('#stage');if(!t||!s)return;
@@ -2338,7 +2340,7 @@ function initUI(){
   $$('[data-play]').forEach(b=>b.onclick=()=>launch(b.dataset.play));
   $$('[data-rules]').forEach(b=>b.onclick=()=>showRules(b.dataset.rules));
   $('#back').onclick=showMenu;$('#rl').onclick=()=>{if(lastMode)showRules(lastMode)};
-  $('#spd').onclick=()=>{const i=PACES.findIndex(p=>p[0]===PACE);PACE=PACES[(i+1)%PACES.length][0];try{localStorage.setItem('miu-pace',String(PACE))}catch(e){}syncHud()};
+  $('#spd').onclick=()=>{if(NETL.tr&&NETL.phase==='game'&&!NETL.host){say('Hızı kurucu belirler');return}const i=PACES.findIndex(p=>p[0]===PACE);PACE=PACES[(i+1)%PACES.length][0];try{localStorage.setItem('miu-pace',String(PACE))}catch(e){}syncHud();if(NETL.tr&&NETL.host&&NETL.phase==='game')NETL.tr.send({t:'pace',v:PACE})};
   const togSnd=()=>{MUTE=!MUTE;try{localStorage.setItem('miu-mute2',MUTE?'1':'0')}catch(e){}syncHud();MUSIC.refresh();if(!MUTE)sfx('pop')};
   const togMus=()=>{NOMUS=!NOMUS;try{localStorage.setItem('miu-nomus2',NOMUS?'1':'0')}catch(e){}syncHud();MUSIC.refresh();sfx('ui')};
   $('#snd').onclick=$('#snd2').onclick=togSnd;$('#mus').onclick=$('#mus2').onclick=togMus;
