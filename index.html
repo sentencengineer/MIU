@@ -1029,7 +1029,7 @@ const sesStar=(n,x)=>`<b style="color:var(--sari)">${ic('star','mini')}${sesPts(
 const sesTable=ns=>`<div class="score">${ns.map(n=>`<div>${n}<b>${sesPts(n)}</b></div>`).join('')}</div>`;
 
 /* ---------- ses motoru: efektler + kedi sesleri + üretken müzik ---------- */
-let AC=null,MUTE=false,NOMUS=false,MG,SB,MB,NB;
+let AC=null,MUTE=false,NOMUS=false,HID=false,MG,SB,MB,NB;
 try{MUTE=localStorage.getItem('miu-mute2')==='1';NOMUS=localStorage.getItem('miu-nomus2')==='1'}catch(e){(window.__SE=window.__SE||[]).push(String(e))}
 function ac(){
   if(MUTE||AUTO())return null;
@@ -1042,7 +1042,7 @@ function ac(){
       SB=AC.createGain();SB.gain.value=1;SB.connect(MG);MB=AC.createGain();MB.gain.value=.0001;MB.connect(MG);
       NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
     if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
-function applyMute(){try{if(!AC||!MG)return;const t=AC.currentTime;MG.gain.cancelScheduledValues(t);MG.gain.setValueAtTime(MG.gain.value,t);MG.gain.linearRampToValueAtTime(MUTE?.0001:.9,t+(MUTE?.05:.1))}catch(e){(window.__SE=window.__SE||[]).push(String(e))}}
+function applyMute(){try{if(!AC||!MG)return;const t=AC.currentTime;MG.gain.cancelScheduledValues(t);MG.gain.setValueAtTime(MG.gain.value,t);MG.gain.linearRampToValueAtTime(MUTE||HID?.0001:.9,t+(MUTE||HID?.04:.1))}catch(e){(window.__SE=window.__SE||[]).push(String(e))}}
 function tone(f,d,type,v,when,to,bus){try{const a=ac();if(!a)return;
   const t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v||.08,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(bus||SB);o.start(t);o.stop(t+d+.03)}catch(e){(window.__SE=window.__SE||[]).push(String(e))}}
@@ -1165,10 +1165,20 @@ const MUSIC=(()=>{
     refresh(){if(MUTE||NOMUS){if(AC&&MB)gain(.0001,.3);return}if(cur){const r=cur;cur=null;api.play(r)}},
     night(on){night=!!on;if(AC&&!MUTE&&!NOMUS&&cur)gain(on?.34:.3,1)},
     tension(x){tens=Math.max(0,Math.min(1,x||0))},
+    resync(){if(AC)next=Math.max(next,AC.currentTime+.1)},
     cur:()=>cur
   };
   return api})();
-document.addEventListener('visibilitychange',()=>{try{if(!AC)return;document.hidden?AC.suspend():(!MUTE&&AC.resume())}catch(e){(window.__SE=window.__SE||[]).push(String(e))}});
+/* arka plana geçince: önce sesi kıs, sonra bağlamı ve iOS ses elemanını durdur; geri gelince sırayla uyandır */
+let hidT=0;
+function audioPause(){try{if(!AC)return;HID=true;applyMute();clearTimeout(hidT);hidT=setTimeout(()=>{try{if(!HID)return;if(window.__ael)window.__ael.pause();if(AC.state==='running')AC.suspend()}catch(e){}},140)}catch(e){(window.__SE=window.__SE||[]).push(String(e))}}
+function audioWake(){try{clearTimeout(hidT);if(!AC)return;HID=false;if(MUTE||AUTO())return;
+  const go=()=>{try{MUSIC.resync();applyMute()}catch(e){}};
+  const r=AC.resume();if(r&&r.then)r.then(go,go);else go();
+  if(window.__ael&&window.__ael.paused)window.__ael.play().catch(()=>{})}catch(e){(window.__SE=window.__SE||[]).push(String(e))}}
+document.addEventListener('visibilitychange',()=>document.hidden?audioPause():audioWake());
+addEventListener('pagehide',audioPause);addEventListener('freeze',audioPause);
+addEventListener('pageshow',()=>{if(!document.hidden)audioWake()});
 
 function unlockAudio(room){try{if(MUTE||AUTO())return;const was=AC&&AC.state==='running';ac();if(!AC)return;
   if(AC.state!=='running')AC.resume();
