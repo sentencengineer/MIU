@@ -2361,19 +2361,20 @@ async function launch(mode,opt,keep){document.querySelectorAll('.espiles.out').f
   cancelAll();$('#modal').hidden=true;lastMode=mode;
   document.body.classList.add('ingame');$('#menu').hidden=true;$('#table').hidden=false;enterWagon(mode);$('#stage').classList.toggle('noidle',mode==='ok');
   $('#hand').innerHTML='';$('#center').innerHTML='';$('#seats').innerHTML='';say('');
-  if(!keep){if(NETL.phase==='game')NETL.phase='party';NETL.cur=null;NETL.lastGame=null;sesReset()}else if(NETL.cur){if(!NETL.cur.re&&NETL.lastGame!==mode)sesReset();NETL.lastGame=mode}fitLock=1;const my=SID;let r='again';
+  if(!keep){if(NETL.phase==='game')NETL.phase='party';NETL.cur=null;NETL.lastGame=null;sesReset()}else if(NETL.cur){if(!NETL.cur.re&&NETL.lastGame!==mode)sesReset();NETL.lastGame=mode}fitLock=FLK;const my=SID;let r='again';
   try{while(r==='again'){r=await({kk:()=>kk(),ok:()=>okey(),bl:()=>bluff(opt||blN),vm:()=>varmi(opt||vmN),es:()=>esles(opt||esN),rd:()=>rdort()}[mode])()}}
   catch(e){if(!(e instanceof Cancel)){console.error(e);window.__ERR=e.message+' '+e.stack;say('Bir hata oluştu: '+e.message);return}}
   if(my===SID&&r==='menu')showMenu()}
 function syncHud(){{const ep=effPace(),lock=NETL.tr&&NETL.phase==='game'&&!NETL.host;$('#spd').textContent=(lock?'Hız (kurucu): ':'Hız: ')+PACES.find(p=>p[0]===ep)[1]}['#snd','#snd2'].forEach(s=>$(s).innerHTML=ic(MUTE?'mute':'spk'));['#mus','#mus2'].forEach(s=>$(s).innerHTML=ic(NOMUS||MUTE?'nonote':'note'))}
 /* ekrana sığdırma: sahne, görünür yüksekliğe göre tek parça ölçeklenir (kaydırma yok) */
-let fitQ=0,fitLock=1;
+const FLK=9,KMAX=2;let fitQ=0,fitLock=FLK;
 function fitStage(){const t=$('#table'),s=$('#stage');if(!t||!s)return;
   s.style.transform='';s.style.transformOrigin='';s.style.width='';s.style.minHeight='';t.style.height='';FIT=1;
   if(t.hidden)return;
   const ing=document.body.classList.contains("ingame"),phone=ing&&innerWidth<=640;
   const vh=window.visualViewport?window.visualViewport.height:window.innerHeight,top=t.getBoundingClientRect().top+window.scrollY,tgt=vh-top-(phone?2:32);
-  let nat=s.offsetHeight,k=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)));k=Math.min(k,fitLock);
+  const up=phone?1:Math.min(KMAX,Math.max(1,(document.documentElement.clientWidth-24)/Math.max(1,s.offsetWidth)));
+  let nat=s.offsetHeight,k=Math.max(.5,Math.min(up,tgt/Math.max(1,nat)));k=Math.min(k,fitLock);
   if(phone){
     /* telefon: sahneyi ekrana göre genişlet/uzat, sonra tek parça küçült; yanlarda ve altta boşluk kalmaz */
     for(let i=0;i<4;i++){s.style.width=(100/k)+'%';s.style.minHeight=(tgt/k)+'px';nat=s.offsetHeight;const kn=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)),0);if(Math.abs(kn-k)<.004)break;k=Math.min(kn,fitLock)}
@@ -2381,8 +2382,10 @@ function fitStage(){const t=$('#table'),s=$('#stage');if(!t||!s)return;
     if(k<.995){FIT=k;s.style.transformOrigin='top left';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}
     else{s.style.width='';k=1}
     return}
+  const esw=!!s.querySelector('.esgrid,.rdwrap');
+  if(esw&&k<1){for(let i=0;i<4;i++){s.style.width=(100/k)+'%';nat=s.offsetHeight;const kn=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)));if(Math.abs(kn-k)<.004)break;k=Math.min(kn,fitLock)}}
   fitLock=k;
-  if(k<.995){FIT=k;const esw=!!s.querySelector('.esgrid,.rdwrap');s.style.transformOrigin=esw?'top left':'top center';if(esw)s.style.width=(100/k)+'%';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}}
+  if(k<.995||k>1.01){FIT=k;s.style.transformOrigin=(esw&&k<1)?'top left':'top center';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}else s.style.width=''}
 const fitSoon=()=>{cancelAnimationFrame(fitQ);fitQ=requestAnimationFrame(fitStage)};
 function initUI(){
   FX.init();buildMenu();initOnline();
@@ -2399,8 +2402,8 @@ function initUI(){
   const seg2=$('#seg2');[[2,'Kolay'],[3,'Orta'],[4,'Zor']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t+' · '+k;b.setAttribute('aria-pressed',k===vmN);b.onclick=()=>{vmN=k;[...seg2.children].forEach((x,i)=>x.setAttribute('aria-pressed',i+2===k))};seg2.appendChild(b)});
   const seg3=$('#seg3');[[1,'Kolay · 12'],[2,'Orta · 24'],[3,'Zor · 36']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.setAttribute('aria-pressed',k===esN);b.onclick=()=>{esN=k;[...seg3.children].forEach((x,i)=>x.setAttribute('aria-pressed',i+1===k))};seg3.appendChild(b)});
   try{new ResizeObserver(fitSoon).observe($('#stage'))}catch(e){}
-  window.addEventListener('resize',()=>{fitLock=1;fitSoon()});window.addEventListener('orientationchange',()=>setTimeout(()=>{fitLock=1;fitSoon()},250));
-  if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{fitLock=1;fitSoon()});
+  window.addEventListener('resize',()=>{fitLock=FLK;fitSoon()});window.addEventListener('orientationchange',()=>setTimeout(()=>{fitLock=FLK;fitSoon()},250));
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',()=>{fitLock=FLK;fitSoon()});
   syncHud();window.__launch=launch}
 initUI();
 
