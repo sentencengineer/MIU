@@ -2367,25 +2367,25 @@ async function launch(mode,opt,keep){document.querySelectorAll('.espiles.out').f
   if(my===SID&&r==='menu')showMenu()}
 function syncHud(){{const ep=effPace(),lock=NETL.tr&&NETL.phase==='game'&&!NETL.host;$('#spd').textContent=(lock?'Hız (kurucu): ':'Hız: ')+PACES.find(p=>p[0]===ep)[1]}['#snd','#snd2'].forEach(s=>$(s).innerHTML=ic(MUTE?'mute':'spk'));['#mus','#mus2'].forEach(s=>$(s).innerHTML=ic(NOMUS||MUTE?'nonote':'note'))}
 /* ekrana sığdırma: sahne, görünür yüksekliğe göre tek parça ölçeklenir (kaydırma yok) */
-const FLK=9,KMAX=2;let fitQ=0,fitLock=FLK;
-function fitStage(){const t=$('#table'),s=$('#stage');if(!t||!s)return;
+const FLK=9,KMAX=2,ASP=1.45;let fitQ=0,fitLock=FLK;
+/* PC: çerçeve (menü + tüm oyunlar) aynı boyutta kalır: yükseklik ekrana, genişlik yüksekliğe göre (ASP) belirlenir */
+const deskW=hf=>Math.max(320,Math.min(document.documentElement.clientWidth-24,hf*ASP,1000*KMAX));
+const vpH=()=>window.visualViewport?window.visualViewport.height:window.innerHeight;
+function fitStage(){const t=$('#table'),s=$('#stage'),app=$('#app');if(!t||!s)return;
   s.style.transform='';s.style.transformOrigin='';s.style.width='';s.style.minHeight='';t.style.height='';FIT=1;
-  if(t.hidden)return;
   const ing=document.body.classList.contains("ingame"),phone=ing&&innerWidth<=640;
-  const vh=window.visualViewport?window.visualViewport.height:window.innerHeight,top=t.getBoundingClientRect().top+window.scrollY,tgt=vh-top-(phone?2:32);
-  const up=phone?1:Math.min(KMAX,Math.max(1,(document.documentElement.clientWidth-24)/Math.max(1,s.offsetWidth)));
-  let nat=s.offsetHeight,k=Math.max(.5,Math.min(up,tgt/Math.max(1,nat)));k=Math.min(k,fitLock);
-  if(phone){
-    /* telefon: sahneyi ekrana göre genişlet/uzat, sonra tek parça küçült; yanlarda ve altta boşluk kalmaz */
-    for(let i=0;i<4;i++){s.style.width=(100/k)+'%';s.style.minHeight=(tgt/k)+'px';nat=s.offsetHeight;const kn=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)),0);if(Math.abs(kn-k)<.004)break;k=Math.min(kn,fitLock)}
-    fitLock=Math.min(fitLock,k);
-    if(k<.995){FIT=k;s.style.transformOrigin='top left';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}
-    else{s.style.width='';k=1}
-    return}
-  const esw=!!s.querySelector('.esgrid,.rdwrap');
-  if(esw&&k<1){for(let i=0;i<4;i++){s.style.width=(100/k)+'%';nat=s.offsetHeight;const kn=Math.max(.5,Math.min(1,tgt/Math.max(1,nat)));if(Math.abs(kn-k)<.004)break;k=Math.min(kn,fitLock)}}
-  fitLock=k;
-  if(k<.995||k>1.01){FIT=k;s.style.transformOrigin=(esw&&k<1)?'top left':'top center';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}else s.style.width=''}
+  if(app)app.style.maxWidth='';
+  if(t.hidden)return;
+  const top=t.getBoundingClientRect().top+window.scrollY,tgt=vpH()-top-(phone?2:32);
+  let kmax=1;
+  if(!phone){const Wf=deskW(tgt);if(app)app.style.maxWidth=Wf+'px';kmax=Wf/1000}
+  /* sahneyi çerçeveye göre genişlet/uzat, sonra tek parça ölçekle; yanlarda ve altta boşluk kalmaz */
+  s.style.width=(100/kmax)+'%';
+  let nat=s.offsetHeight,k=Math.max(.5,Math.min(kmax,tgt/Math.max(1,nat)));k=Math.min(k,fitLock);
+  for(let i=0;i<5;i++){s.style.width=(100/k)+'%';s.style.minHeight=(tgt/k)+'px';nat=s.offsetHeight;const kn=Math.max(.5,Math.min(kmax,tgt/Math.max(1,nat)));if(Math.abs(kn-k)<.004)break;k=Math.min(kn,fitLock)}
+  fitLock=Math.min(fitLock,k);
+  if(phone&&k>=.995){s.style.width='';k=1;return}
+  FIT=k;s.style.transformOrigin='top left';s.style.transform=`scale(${k})`;t.style.height=Math.ceil(nat*k)+'px'}
 const fitSoon=()=>{cancelAnimationFrame(fitQ);fitQ=requestAnimationFrame(fitStage)};
 function initUI(){
   FX.init();buildMenu();initOnline();
@@ -2407,7 +2407,9 @@ function initUI(){
   syncHud();window.__launch=launch}
 initUI();
 
-function fitMenu(){const me=$('#menu');if(!me||me.hidden)return;me.style.zoom='';if(innerWidth>700)return;
+function fitMenu(){const me=$('#menu'),app=$('#app');if(!me||me.hidden)return;me.style.zoom='';
+ if(innerWidth>700){const Wf=deskW(vpH()-12-32);if(app)app.style.maxWidth=Wf+'px';const z=Wf/1000;if(Math.abs(z-1)>.01)me.style.zoom=z.toFixed(3);return}
+ if(app)app.style.maxWidth='';
  const h=me.scrollHeight,k=Math.max(.75,Math.min(1,(innerHeight-8)/h));if(k<.999)me.style.zoom=k.toFixed(3)}
 addEventListener('resize',()=>setTimeout(fitMenu,50));addEventListener('orientationchange',()=>setTimeout(fitMenu,300));
 setTimeout(fitMenu,300);setTimeout(fitMenu,1200);
