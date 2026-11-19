@@ -2379,8 +2379,8 @@ const vpH=()=>window.visualViewport?window.visualViewport.height:window.innerHei
 function fitStage(){const t=$('#table'),s=$('#stage'),app=$('#app');if(!t||!s)return;
   s.style.transform='';s.style.transformOrigin='';s.style.width='';s.style.minHeight='';s.style.removeProperty('--fk');t.style.height='';FIT=1;
   const ing=document.body.classList.contains("ingame"),phone=ing&&innerWidth<=640;
-  if(app)app.style.maxWidth='';
   if(t.hidden)return;
+  if(app)app.style.maxWidth='';
   const top=t.getBoundingClientRect().top+window.scrollY,tgt=vpH()-top-(phone?2:32);
   let kmax=1;
   if(!phone){const Wf=deskW(tgt);if(app)app.style.maxWidth=Wf+'px';kmax=Wf/1000}
