@@ -2374,7 +2374,7 @@ function syncHud(){{const ep=effPace(),lock=NETL.tr&&NETL.phase==='game'&&!NETL.
 /* ekrana sığdırma: sahne, görünür yüksekliğe göre tek parça ölçeklenir (kaydırma yok) */
 const FLK=9,KMAX=2,ASP=1.45;let fitQ=0,fitLock=FLK;
 /* PC: çerçeve (menü + tüm oyunlar) aynı boyutta kalır: yükseklik ekrana, genişlik yüksekliğe göre (ASP) belirlenir */
-const deskW=hf=>Math.max(320,Math.min(document.documentElement.clientWidth-24,hf*ASP,1000*KMAX));
+const deskW=hf=>Math.max(320,document.documentElement.clientWidth-24);
 const vpH=()=>window.visualViewport?window.visualViewport.height:window.innerHeight;
 function fitStage(){const t=$('#table'),s=$('#stage'),app=$('#app');if(!t||!s)return;
   s.style.transform='';s.style.transformOrigin='';s.style.width='';s.style.minHeight='';s.style.removeProperty('--fk');t.style.height='';FIT=1;
