@@ -773,6 +773,30 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 @media(min-width:700px){#modal .rsheet:has(.rsteps){max-width:min(860px,94%)}}
 .rsmedia img{max-height:42vh}
 
+.rsheet.rfix{width:min(780px,94vw);height:min(680px,92vh);max-width:none;max-height:none;box-sizing:border-box;overflow:hidden}
+.rsheet.rfix .rtabs{display:flex;gap:8px;flex:none}
+.rtabs button{font:800 15px var(--body,inherit);color:var(--cream,#fbf1dc);background:rgba(0,0,0,.3);border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
+.rtabs button.on{background:var(--sari,#f2cf5b);color:#3a1a33}
+.rsheet.rfix .rsteps{flex:1;min-height:0;width:100%;gap:10px}
+.rsheet.rfix .rsteps[hidden],.rsheet.rfix .rsfull[hidden]{display:none}
+.rsheet.rfix .rsmedia{flex:1;min-height:0;align-items:center;box-sizing:border-box}
+.rsheet.rfix .rsmedia img{width:100%;height:100%;max-height:none;object-fit:contain}
+.rsheet.rfix .rstxt{flex:none;min-height:3.9em;display:flex;align-items:center}
+.rsheet.rfix .rsnav{flex:none}
+.rsheet.rfix .rsfull{flex:1;min-height:0;overflow:auto;width:100%;text-align:left}
+.rsheet.rfix .row{flex:none}
+@media(max-width:700px){.rsheet.rfix{height:min(640px,94vh);padding:16px 12px}.rsheet.rfix h3{font-size:30px}.rstxt{font-size:15px}}
+.rsheet.rfix .rsmedia{position:relative;width:100%;flex:1 1 0;overflow:hidden}
+.rsheet.rfix .rsmedia img{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px)}
+.rsheet.rfix .rsteps{display:flex;flex-direction:column;align-items:stretch}
+.rsheet.rfix .rules{flex:1 1 0;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+.rsheet.rfix .rsfull{width:100%}
+@media(max-width:700px){.rsheet.rfix .rstxt{min-height:5.8em}}
+.rsheet.rfix .rstxt{justify-content:center;text-align:center;min-height:3.2em}
+.rsheet.rfix .rsnav{align-self:center}
+.rsheet.rfix{height:min(760px,95vh)}
+@media(max-width:700px){.rsheet.rfix{height:min(640px,94vh)}.rsheet.rfix .rstxt{min-height:5.8em}}
+
 </style>
 <div id="app">
  <section id="menu">
@@ -2289,14 +2313,15 @@ const STEPS={kk:[
  ['rules/kk8.gif','Katil ölürse köy kazanır. Ortada iki kişi kalırsa Katil kazanır.']
 ]};
 function showRules(k){const st=STEPS[k];if(!st)return openModal(RULES[k][0],RULES[k][1]);
- openModal(RULES[k][0],`<div class="rsteps"><div class="rsmedia"><img alt="" decoding="async"></div><p class="rstxt"></p><div class="rsnav"><button class="gbtn n s" id="rsp" aria-label="Önceki">‹</button><span class="rsdots"></span><button class="gbtn p s" id="rsn" aria-label="Sonraki">›</button></div><button class="gbtn n s" id="rsall">Yazılı kurallar</button></div><div class="rsfull" hidden>${RULES[k][1]}</div>`);
- const m=$('#modal'),img=m.querySelector('.rsmedia img'),med=m.querySelector('.rsmedia'),tx=m.querySelector('.rstxt'),dots=m.querySelector('.rsdots'),stp=m.querySelector('.rsteps'),full=m.querySelector('.rsfull'),all=m.querySelector('#rsall');
+ openModal(RULES[k][0],`<div class="rtabs"><button class="on" data-t="s">Adım adım</button><button data-t="w">Yazılı kurallar</button></div><div class="rsteps"><div class="rsmedia"><img alt="" decoding="async"></div><p class="rstxt"></p><div class="rsnav"><button class="gbtn n s" id="rsp" aria-label="Önceki">‹</button><span class="rsdots"></span><button class="gbtn p s" id="rsn" aria-label="Sonraki">›</button></div></div><div class="rsfull" hidden>${RULES[k][1]}</div>`);
+ const m=$('#modal');m.querySelector('.rsheet').classList.add('rfix');
+ const img=m.querySelector('.rsmedia img'),med=m.querySelector('.rsmedia'),tx=m.querySelector('.rstxt'),dots=m.querySelector('.rsdots'),stp=m.querySelector('.rsteps'),full=m.querySelector('.rsfull'),tabs=m.querySelectorAll('.rtabs button');
  dots.innerHTML=st.map((_,i)=>`<i data-i="${i}"></i>`).join('');let i=0;
- const go=n=>{i=(n+st.length)%st.length;med.hidden=false;img.src=st[i][0];tx.textContent=st[i][1];dots.querySelectorAll('i').forEach((d,j)=>d.classList.toggle('on',j===i));
+ const go=n=>{i=(n+st.length)%st.length;img.hidden=false;img.src=st[i][0];tx.textContent=st[i][1];dots.querySelectorAll('i').forEach((d,j)=>d.classList.toggle('on',j===i));
   const nx=new Image();nx.src=st[(i+1)%st.length][0]};
- img.onerror=()=>{med.hidden=true};
+ img.onerror=()=>{img.hidden=true};
  m.querySelector('#rsp').onclick=()=>go(i-1);m.querySelector('#rsn').onclick=()=>go(i+1);dots.onclick=e=>{if(e.target.dataset.i!=null)go(+e.target.dataset.i)};
- all.onclick=()=>{const f=full.hidden;full.hidden=!f;stp.querySelectorAll('.rsmedia,.rstxt,.rsnav').forEach(e=>e.style.display=f?'none':'');all.textContent=f?'Adım adım':'Yazılı kurallar'};
+ tabs.forEach(t=>t.onclick=()=>{const w=t.dataset.t==='w';tabs.forEach(x=>x.classList.toggle('on',x===t));full.hidden=!w;stp.hidden=w});
  go(0)}
 const WAGONS=[
  {k:'kk',id:'kupe',name:'Malikâne Odası',title:'Katil Kim',meta:'7 oyuncu · 6 bot',desc:'Bir Katil, altı Köylü. Gece Sandığı\'na kart koy, sorguya çek, infaz et.',acc:'kupe',look:2},
