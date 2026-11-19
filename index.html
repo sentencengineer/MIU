@@ -762,6 +762,14 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 #menu.dk .modes{display:flex;flex-wrap:wrap;justify-content:center}
 #menu.dk .mode{flex:0 0 calc((100% - (var(--cols,3) - 1)*18px)/var(--cols,3));min-width:0}
 
+.rsteps{display:flex;flex-direction:column;align-items:center;gap:12px}
+.rsmedia{width:100%;min-height:120px;display:flex;justify-content:center;background:rgba(0,0,0,.28);border-radius:16px;padding:6px;box-shadow:inset 0 2px 8px rgba(0,0,0,.35)}
+.rsmedia img{max-width:100%;max-height:46vh;border-radius:12px;display:block}
+.rstxt{font:700 17px/1.4 var(--body,inherit);text-align:center;min-height:3em;margin:0}
+.rsnav{display:flex;align-items:center;gap:14px}
+.rsdots{display:flex;gap:7px}.rsdots i{width:9px;height:9px;border-radius:50%;background:rgba(251,241,220,.3);cursor:pointer}.rsdots i.on{background:var(--sari,#f2cf5b);transform:scale(1.25)}
+.rsnav .gbtn{min-width:46px;font-size:22px;padding:6px 14px}
+
 </style>
 <div id="app">
  <section id="menu">
@@ -2266,7 +2274,27 @@ bl:['Renk Blöfü','<ul><li>3–6 oyuncu. Her tur kartlar baştan dağıtılır,
 };
 function openModal(title,html){const m=$('#modal');m.hidden=false;m.innerHTML=`<div class="rsheet" role="dialog" aria-label="${title}"><h3>${title}</h3><div class="rules">${html}</div><div class="row"><button class="gbtn p" id="mok">Tamam</button></div></div>`;
   const close=()=>{m.hidden=true;m.innerHTML=''};m.querySelector('#mok').onclick=close;m.onclick=e=>{if(e.target===m)close()}}
-const showRules=k=>openModal(RULES[k][0],RULES[k][1]);
+/* adım adım, GIF'li kurallar (olmayan oyunlarda eski yazılı kural açılır) */
+const STEPS={kk:[
+ ['rules/kk1.gif','Köşedeki kimlik kartın rengini belirler; Katil\'in kartı Mürdüm\'dür ve onu sadece sen görürsün.'],
+ ['rules/kk2.gif','Sıran gelince soldakinin verdiği kartı alır, desteden de bir kart çekersin.'],
+ ['rules/kk3.gif','Elindeki kartlardan birini Gece Sandığı\'na gizlice koyarsın.'],
+ ['rules/kk4.gif','Bir kartı da sağındakine verirsin; böylece elinde yine 4 kart kalır.'],
+ ['rules/kk5.gif','Gece sandık açılır: içinde Saf Mürdüm varsa Kızıl Kalkan çalışır ve kimse ölmez. Üçüncü kalkanda Katil düşer.'],
+ ['rules/kk6.gif','Kalkan yoksa sandıktaki her Mürdüm hibriti, kartın öbür rengindeki oyuncuyu öldürür.'],
+ ['rules/kk7.gif','Elinde yeterli Mürdüm ve kendi renginden kare varsa birini sorguya çekersin; herkes İnfaz ya da Beraat oyu verir.'],
+ ['rules/kk8.gif','Katil ölürse köy kazanır; hayatta iki kişi kalırsa Katil kazanır.']
+]};
+function showRules(k){const st=STEPS[k];if(!st)return openModal(RULES[k][0],RULES[k][1]);
+ openModal(RULES[k][0],`<div class="rsteps"><div class="rsmedia"><img alt="" decoding="async"></div><p class="rstxt"></p><div class="rsnav"><button class="gbtn n s" id="rsp" aria-label="Önceki">‹</button><span class="rsdots"></span><button class="gbtn p s" id="rsn" aria-label="Sonraki">›</button></div><button class="gbtn n s" id="rsall">Yazılı kurallar</button></div><div class="rsfull" hidden>${RULES[k][1]}</div>`);
+ const m=$('#modal'),img=m.querySelector('.rsmedia img'),med=m.querySelector('.rsmedia'),tx=m.querySelector('.rstxt'),dots=m.querySelector('.rsdots'),stp=m.querySelector('.rsteps'),full=m.querySelector('.rsfull'),all=m.querySelector('#rsall');
+ dots.innerHTML=st.map((_,i)=>`<i data-i="${i}"></i>`).join('');let i=0;
+ const go=n=>{i=(n+st.length)%st.length;med.hidden=false;img.src=st[i][0];tx.textContent=st[i][1];dots.querySelectorAll('i').forEach((d,j)=>d.classList.toggle('on',j===i));
+  const nx=new Image();nx.src=st[(i+1)%st.length][0]};
+ img.onerror=()=>{med.hidden=true};
+ m.querySelector('#rsp').onclick=()=>go(i-1);m.querySelector('#rsn').onclick=()=>go(i+1);dots.onclick=e=>{if(e.target.dataset.i!=null)go(+e.target.dataset.i)};
+ all.onclick=()=>{const f=full.hidden;full.hidden=!f;stp.querySelectorAll('.rsmedia,.rstxt,.rsnav').forEach(e=>e.style.display=f?'none':'');all.textContent=f?'Adım adım':'Yazılı kurallar'};
+ go(0)}
 const WAGONS=[
  {k:'kk',id:'kupe',name:'Malikâne Odası',title:'Katil Kim',meta:'7 oyuncu · 6 bot',desc:'Bir Katil, altı Köylü. Gece Sandığı\'na kart koy, sorguya çek, infaz et.',acc:'kupe',look:2},
  {k:'ok',id:'salon',name:'Okey Salonu',title:'Renk Okeyi',meta:'4 oyuncu · 3 bot',desc:'Çek, at; aynı renkten 5 kare ya da yedi rengin hepsini topla.',acc:'salon',look:0},
