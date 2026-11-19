@@ -2276,14 +2276,14 @@ function openModal(title,html){const m=$('#modal');m.hidden=false;m.innerHTML=`<
   const close=()=>{m.hidden=true;m.innerHTML=''};m.querySelector('#mok').onclick=close;m.onclick=e=>{if(e.target===m)close()}}
 /* adım adım, GIF'li kurallar (olmayan oyunlarda eski yazılı kural açılır) */
 const STEPS={kk:[
- ['rules/kk1.gif','Köşedeki kimlik kartın rengini belirler; Katil\'in kartı Mürdüm\'dür ve onu sadece sen görürsün.'],
- ['rules/kk2.gif','Sıran gelince soldakinin verdiği kartı alır, desteden de bir kart çekersin.'],
- ['rules/kk3.gif','Elindeki kartlardan birini Gece Sandığı\'na gizlice koyarsın.'],
- ['rules/kk4.gif','Bir kartı da sağındakine verirsin; böylece elinde yine 4 kart kalır.'],
- ['rules/kk5.gif','Gece sandık açılır: içinde Saf Mürdüm varsa Kızıl Kalkan çalışır ve kimse ölmez. Üçüncü kalkanda Katil düşer.'],
- ['rules/kk6.gif','Kalkan yoksa sandıktaki her Mürdüm hibriti, kartın öbür rengindeki oyuncuyu öldürür.'],
- ['rules/kk7.gif','Elinde yeterli Mürdüm ve kendi renginden kare varsa birini sorguya çekersin; herkes İnfaz ya da Beraat oyu verir.'],
- ['rules/kk8.gif','Katil ölürse köy kazanır; hayatta iki kişi kalırsa Katil kazanır.']
+ ['rules/kk1.gif','Köşedeki kart senin rolün. Renk hangi takımda olduğunu söyler. Katil\'in kartı Mürdüm, onu sadece o görür.'],
+ ['rules/kk2.gif','Sıra sende: Soldakinin verdiği kartı al, desteden de bir tane çek.'],
+ ['rules/kk3.gif','Elinden bir kartı gizlice sandığa at. Kimse neyi attığını bilmez.'],
+ ['rules/kk4.gif','Bir kartı da sağındakine ver. Böylece elinde yine 4 kart kalır.'],
+ ['rules/kk5.gif','Gece olunca sandık açılır. İçinde Saf Mürdüm çıktıysa Kızıl Kalkan devreye girer, kimse ölmez. Kalkan üçe çıkarsa Katil düşer!'],
+ ['rules/kk6.gif','Kalkan yoksa sandıktaki her hibrit Mürdüm bir kurban alır. Kartın öbür rengindeki oyuncu ölür.'],
+ ['rules/kk7.gif','Şüphelendiğin kişiyi sorguya çek. Yeterli Mürdüm\'ün ve kendi renginden bir kare varsa olur. Sonra herkes İnfaz ya da Beraat der.'],
+ ['rules/kk8.gif','Katil ölürse köy kazanır. Ortada iki kişi kalırsa Katil kazanır.']
 ]};
 function showRules(k){const st=STEPS[k];if(!st)return openModal(RULES[k][0],RULES[k][1]);
  openModal(RULES[k][0],`<div class="rsteps"><div class="rsmedia"><img alt="" decoding="async"></div><p class="rstxt"></p><div class="rsnav"><button class="gbtn n s" id="rsp" aria-label="Önceki">‹</button><span class="rsdots"></span><button class="gbtn p s" id="rsn" aria-label="Sonraki">›</button></div><button class="gbtn n s" id="rsall">Yazılı kurallar</button></div><div class="rsfull" hidden>${RULES[k][1]}</div>`);
