@@ -2302,7 +2302,35 @@ bl:['Renk Blöfü','<ul><li>3–6 oyuncu. Her tur kartlar baştan dağıtılır,
 function openModal(title,html){const m=$('#modal');m.hidden=false;m.innerHTML=`<div class="rsheet" role="dialog" aria-label="${title}"><h3>${title}</h3><div class="rules">${html}</div><div class="row"><button class="gbtn p" id="mok">Tamam</button></div></div>`;
   const close=()=>{m.hidden=true;m.innerHTML=''};m.querySelector('#mok').onclick=close;m.onclick=e=>{if(e.target===m)close()}}
 /* adım adım, GIF'li kurallar (olmayan oyunlarda eski yazılı kural açılır) */
-const STEPS={kk:[
+const STEPS={ ok:[
+ ['rules/ok1.gif','Herkesin elinde 4 kart var. Ortada kapalı deste ve yanında açık kart duruyor.'],
+ ['rules/ok2.gif','Sıra sende: kapalı desteden bir kart çek ya da açık kartı al.'],
+ ['rules/ok3.gif','Sonra elinden bir kartı at, böylece yine 4 kartın kalır.'],
+ ['rules/ok4.gif','8 karede aynı renkten 5 veya daha fazla kare (Monokrom, 1 puan) ya da yedi rengin hepsi (Gökkuşağı, 3 puan) varsa elini açıp bitirirsin.']
+ ], rd:[
+ ['rules/rd1.gif','Ortada 8 sütun var, her sütuna en fazla 4 kart girer. Elinde 4 kart olur.'],
+ ['rules/rd2.gif','Bir kart seç. Hibritse Döndür düğmesiyle üst ve alt rengini değiştirebilirsin.'],
+ ['rules/rd3.gif','Kartı bir sütuna koy. Kart sütunun en üstüne oturur.'],
+ ['rules/rd4.gif','Aynı renkten 4 kareyi yan yana, üst üste ya da çapraz getiren kazanır. Renkler ortaktır, rakibin başladığı hattı sen de bitirebilirsin.']
+ ], es:[
+ ['rules/es1.gif','Kartlar yüzü kapalı dizilir. Hepsi iki renkli Hibrit kart ve her karttan iki tane var.'],
+ ['rules/es2.gif','Sıra sende: iki kart seç, ikisi de açılır. Aynı değillerse kapanır ve sıra rakibe geçer.'],
+ ['rules/es3.gif','Aynı çıkarsa kartlar senin olur, 1 puan alırsın ve yeniden seçersin.'],
+ ['rules/es4.gif','Kartlar bitince en çok puanı olan kazanır.']
+ ], vm:[
+ ['rules/vm1.gif','Rakibin kartları kapalı. Sen sadece kendi elini görürsün.'],
+ ['rules/vm2.gif','Sırası gelen rakibine evet/hayır sorusu sorar. Cevap evetse sıra sende kalır.'],
+ ['rules/vm3.gif','Aynı kartta iki renk ya da Saf kart diye sorup evet alırsan o kart hemen açılır.'],
+ ['rules/vm4.gif','Cevap hayırsa sıra rakibe geçer.'],
+ ['rules/vm5.gif','Rakibin elini ilk bitiren kazanır.']
+ ], bl:[
+ ['rules/bl1.gif','Her tur herkese 4 kart dağıtılır, sadece kendi elini görürsün. Ortadaki küre o turun Aktif Rengini gösterir.'],
+ ['rules/bl2.gif','Sıra sende: teklifi yükselt. Teklif, elindeki aktif renk karelerinin sayısı iddiasıdır.'],
+ ['rules/bl3.gif','İstersen Pas de. Oyun boyunca 3 pas hakkın var.'],
+ ['rules/bl4.gif','Teklife inanmıyorsan BLÖF! de. Teklifi veren elini açar: teklif doğruysa blöf diyen kaybeder, değilse teklifi veren.'],
+ ['rules/bl5.gif','Kaybeden Ölümcül Çekiliş yapar: çektiği kartta aktif renk varsa elenir, yoksa renk havuzuna eklenir.']
+ ],
+ kk:[
  ['rules/kk1.gif','Köşedeki kart senin rolün. Renk hangi takımda olduğunu söyler. Katil\'in kartı Mürdüm, onu sadece o görür.'],
  ['rules/kk2.gif','Sıra sende: Soldakinin verdiği kartı al, desteden de bir tane çek.'],
  ['rules/kk3.gif','Elinden bir kartı gizlice sandığa at. Kimse neyi attığını bilmez.'],
