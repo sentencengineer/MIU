@@ -797,6 +797,9 @@ html:has(#menu:not([hidden])),body:has(#menu:not([hidden])){background:#cdbdf7}
 .rsheet.rfix{height:min(760px,95vh)}
 @media(max-width:700px){.rsheet.rfix{height:min(640px,94vh)}.rsheet.rfix .rstxt{min-height:5.8em}}
 
+.rsheet.rfix{width:min(980px,94vw);height:min(840px,95vh)}
+@media(max-width:700px){.rsheet.rfix{width:94vw;height:min(640px,94vh)}}
+
 </style>
 <div id="app">
  <section id="menu">
@@ -2303,42 +2306,42 @@ function openModal(title,html){const m=$('#modal');m.hidden=false;m.innerHTML=`<
   const close=()=>{m.hidden=true;m.innerHTML=''};m.querySelector('#mok').onclick=close;m.onclick=e=>{if(e.target===m)close()}}
 /* adım adım, GIF'li kurallar (olmayan oyunlarda eski yazılı kural açılır) */
 const STEPS={ ok:[
- ['rules/ok1.gif','Herkesin elinde 4 kart var. Ortada kapalı deste, yanında da en son atılan açık kart duruyor.'],
- ['rules/ok2.gif','Sıran gelince desteden bir kart çek ya da açık kartı kap. Elinde 5 kart olur.'],
- ['rules/ok3.gif','Sonra işine en az yarayan kartı masaya at, yine 4 kartla kalırsın.'],
- ['rules/ok4.gif','Şart tutunca elini aç! 8 karede 5 veya daha fazla aynı renk Monokrom (1 puan), yedi rengin hepsi Gökkuşağı (3 puan).']
+ ['rules/ok1.webp','Herkesin elinde 4 kart var. Ortada kapalı deste, yanında da en son atılan açık kart duruyor.'],
+ ['rules/ok2.webp','Sıran gelince desteden bir kart çek ya da açık kartı kap. Elinde 5 kart olur.'],
+ ['rules/ok3.webp','Sonra işine en az yarayan kartı masaya at, yine 4 kartla kalırsın.'],
+ ['rules/ok4.webp','Şart tutunca elini aç! 8 karede 5 veya daha fazla aynı renk Monokrom (1 puan), yedi rengin hepsi Gökkuşağı (3 puan).']
  ], rd:[
- ['rules/rd1.gif','Ortada 8 sütunluk boş bir tahta var. Elindeki 4 karttan birini seçeceksin.'],
- ['rules/rd2.gif','Kartı seç. Hibritse Döndür\'e basıp üst ve alt rengini değiştirebilirsin.'],
- ['rules/rd3.gif','Sonra bir sütun seç, kart tahtaya düşer. Bir sütuna en fazla 4 kart sığar.'],
- ['rules/rd4.gif','Aynı renkten 4 kareyi yan yana, üst üste ya da çapraz dizen kazanır. Rakibin başladığı hattı sen bile bitirebilirsin!']
+ ['rules/rd1.webp','Ortada 8 sütunluk boş bir tahta var. Elindeki 4 karttan birini seçeceksin.'],
+ ['rules/rd2.webp','Kartı seç. Hibritse Döndür\'e basıp üst ve alt rengini değiştirebilirsin.'],
+ ['rules/rd3.webp','Sonra bir sütun seç, kart tahtaya düşer. Bir sütuna en fazla 4 kart sığar.'],
+ ['rules/rd4.webp','Aynı renkten 4 kareyi yan yana, üst üste ya da çapraz dizen kazanır. Rakibin başladığı hattı sen bile bitirebilirsin!']
  ], es:[
- ['rules/es1.gif','Masada yüzü kapalı kartlar var ve her kartın bir eşi saklanıyor.'],
- ['rules/es2.gif','İki kart aç. Eşleşmediler mi? Kapanırlar ve sıra rakibe geçer. Hafızanı zorla!'],
- ['rules/es3.gif','Eşini buldun mu? Kartlar senin olur, 1 puan kazanırsın ve bir kez daha açarsın.'],
- ['rules/es4.gif','Masa boşalınca en çok eşi toplayan kazanır.']
+ ['rules/es1.webp','Masada yüzü kapalı kartlar var ve her kartın bir eşi saklanıyor.'],
+ ['rules/es2.webp','İki kart aç. Eşleşmediler mi? Kapanırlar ve sıra rakibe geçer. Hafızanı zorla!'],
+ ['rules/es3.webp','Eşini buldun mu? Kartlar senin olur, 1 puan kazanırsın ve bir kez daha açarsın.'],
+ ['rules/es4.webp','Masa boşalınca en çok eşi toplayan kazanır.']
  ], vm:[
- ['rules/vm1.gif','Rakibin kartları kapalı, renklerini bilmiyorsun. Sorularınla çözeceksin.'],
- ['rules/vm2.gif','Bir renk seçip «var mı?» diye sor. Cevap evetse onay işareti düşer ve sıra sende kalır.'],
- ['rules/vm3.gif','Aynı kartta iki renk ya da Saf kart diye de sorabilirsin. Evet gelirse o kart hemen açılır!'],
- ['rules/vm4.gif','Cevap hayırsa renk elenir ama sıra rakibe geçer.'],
- ['rules/vm5.gif','Rakibin tüm kartlarını ilk açan kazanır.']
+ ['rules/vm1.webp','Rakibin kartları kapalı, renklerini bilmiyorsun. Sorularınla çözeceksin.'],
+ ['rules/vm2.webp','Bir renk seçip «var mı?» diye sor. Cevap evetse onay işareti düşer ve sıra sende kalır.'],
+ ['rules/vm3.webp','Aynı kartta iki renk ya da Saf kart diye de sorabilirsin. Evet gelirse o kart hemen açılır!'],
+ ['rules/vm4.webp','Cevap hayırsa renk elenir ama sıra rakibe geçer.'],
+ ['rules/vm5.webp','Rakibin tüm kartlarını ilk açan kazanır.']
  ], bl:[
- ['rules/bl1.gif','Her tur herkese 4 kart dağıtılır, sadece kendi elini görürsün. Ortadaki küre o turun Aktif Rengini gösterir.'],
- ['rules/bl2.gif','Elindeki aktif renk karelerini sayıp teklif ver. İstersen blöf yapıp olduğundan fazlasını söyleyebilirsin.'],
- ['rules/bl3.gif','Teklifi tutturamıyor musun? Pas de. Oyun boyunca 3 pas hakkın var.'],
- ['rules/bl4.gif','Rakibin teklifine inanmıyorsan BLÖF! de. Eli açılır: teklif doğruysa blöf diyen kaybeder.'],
- ['rules/bl5.gif','Kaybeden Ölümcül Çekiliş yapar: çektiği kartta aktif renk çıkarsa elenir, çıkmazsa güvendedir.']
+ ['rules/bl1.webp','Her tur herkese 4 kart dağıtılır, sadece kendi elini görürsün. Ortadaki küre o turun Aktif Rengini gösterir.'],
+ ['rules/bl2.webp','Elindeki aktif renk karelerini sayıp teklif ver. İstersen blöf yapıp olduğundan fazlasını söyleyebilirsin.'],
+ ['rules/bl3.webp','Teklifi tutturamıyor musun? Pas de. Oyun boyunca 3 pas hakkın var.'],
+ ['rules/bl4.webp','Rakibin teklifine inanmıyorsan BLÖF! de. Eli açılır: teklif doğruysa blöf diyen kaybeder.'],
+ ['rules/bl5.webp','Kaybeden Ölümcül Çekiliş yapar: çektiği kartta aktif renk çıkarsa elenir, çıkmazsa güvendedir.']
  ],
  kk:[
- ['rules/kk1.gif','Rolünü köşedeki kimlik kartından öğrenirsin. Bu elde Katil\'sin ve bunu sadece sen biliyorsun!'],
- ['rules/kk2.gif','Sıran gelince soldaki kedinin uzattığı kartı alırsın, destenin tepesinden de bir kart çekersin.'],
- ['rules/kk3.gif','Elinden bir kartı seç ve Gece Sandığı\'na gizlice bırak. Kimse neyi attığını görmez.'],
- ['rules/kk4.gif','Bir kartı da sağındaki kedinin önüne kapalı uzat. Kart el değiştirir, sende yine 4 kart kalır.'],
- ['rules/kk5.gif','Gece olunca sandık açılır. İçinden Saf Mürdüm çıkarsa Kızıl Kalkan devreye girer ve kimse ölmez!'],
- ['rules/kk6.gif','Kalkan yoksa sandıktaki hibrit Mürdüm kartları iş başındadır: kartın öbür rengindeki kedi Karanlık Ölüm\'le elenir.'],
- ['rules/kk7.gif','Şüphelendin mi? Sorgu aç! Herkes İnfaz ya da Beraat der. İnfaz çıkarsa kimlik açılır: Mürdümse köy kazanır, değilse o kedi ölür.'],
- ['rules/kk8.gif','Katil yakalanırsa köy kazanır. Hayatta iki kişi kalırsa Katil kazanır.']
+ ['rules/kk1.webp','Rolünü köşedeki kimlik kartından öğrenirsin. Bu elde Katil\'sin ve bunu sadece sen biliyorsun!'],
+ ['rules/kk2.webp','Sıran gelince soldaki kedinin uzattığı kartı alırsın, destenin tepesinden de bir kart çekersin.'],
+ ['rules/kk3.webp','Elinden bir kartı seç ve Gece Sandığı\'na gizlice bırak. Kimse neyi attığını görmez.'],
+ ['rules/kk4.webp','Bir kartı da sağındaki kedinin önüne kapalı uzat. Kart el değiştirir, sende yine 4 kart kalır.'],
+ ['rules/kk5.webp','Gece olunca sandık açılır. İçinden Saf Mürdüm çıkarsa Kızıl Kalkan devreye girer ve kimse ölmez!'],
+ ['rules/kk6.webp','Kalkan yoksa sandıktaki hibrit Mürdüm kartları iş başındadır: kartın öbür rengindeki kedi Karanlık Ölüm\'le elenir.'],
+ ['rules/kk7.webp','Şüphelendin mi? Sorgu aç! Herkes İnfaz ya da Beraat der. İnfaz çıkarsa kimlik açılır: Mürdümse köy kazanır, değilse o kedi ölür.'],
+ ['rules/kk8.webp','Katil yakalanırsa köy kazanır. Hayatta iki kişi kalırsa Katil kazanır.']
 ]};
 function showRules(k){const st=STEPS[k];if(!st)return openModal(RULES[k][0],RULES[k][1]);
  openModal(RULES[k][0],`<div class="rtabs"><button class="on" data-t="s">Adım adım</button><button data-t="w">Yazılı kurallar</button></div><div class="rsteps"><div class="rsmedia"><img alt="" decoding="async"></div><p class="rstxt"></p><div class="rsnav"><button class="gbtn n s" id="rsp" aria-label="Önceki">‹</button><span class="rsdots"></span><button class="gbtn p s" id="rsn" aria-label="Sonraki">›</button></div></div><div class="rsfull" hidden>${RULES[k][1]}</div>`);
